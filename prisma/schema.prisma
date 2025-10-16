@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  customerName String
+  customerPhone String
+  service     String
+  date        DateTime
+  time        String
+  status      AppointmentStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  conversationId String?
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+
+  @@index([date])
+  @@index([customerPhone])
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  phoneNumber String
+  messages    Message[]
+  appointments Appointment[]
+  context     Json?    // Armazena contexto da conversa (nome coletado, etc)
+  status      ConversationStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phoneNumber])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           MessageRole
+  content        String
+  timestamp      DateTime @default(now())
+
+  @@index([conversationId])
+}
+
+model Prescription {
+  id          String   @id @default(cuid())
+  patientName String
+  content     String
+  createdBy   String   @default("admin")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}

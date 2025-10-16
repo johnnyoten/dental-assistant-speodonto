@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\ndocs: reorganizar documentação em 3 tutoriais focados\n\nSimplificação da documentação com foco na stack escolhida:\n- PostgreSQL (Neon.tech)\n- Google Gemini (IA gratuita)\n- Deploy Vercel\n\nMudanças:\n\nREMOVIDO (12 arquivos):\n- AI_ALTERNATIVES.md\n- API_EXAMPLES.md\n- BACKEND_SUMMARY.md\n- CLAUDE.md\n- FRONTEND_GUIDE.md\n- PROJECT_COMPLETE.md\n- QUICK_START.md\n- SETUP_COMPLETE.md\n- SWITCH_TO_FREE_AI.md\n- TROUBLESHOOTING.md\n- WHATSAPP_QUICK.md\n- WHATSAPP_SETUP.md\n\nADICIONADO (pasta tutorials/):\n- 1-backend.md - Setup completo backend (PostgreSQL + Gemini)\n- 2-frontend.md - Guia do painel mobile-first\n- 3-whatsapp-gemini.md - Configuração WhatsApp + IA\n\nATUALIZADO:\n- README.md - Simplificado e objetivo, aponta para os 3 tutoriais\n\nBenefícios:\n✅ Menos confusão (era muito conteúdo)\n✅ Foco na stack gratuita (Gemini + Neon + Vercel)\n✅ 3 tutoriais lineares e fáceis de seguir (~45 min total)\n✅ README direto ao ponto\n✅ Melhor experiência para iniciantes\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git remote set-url:*)",
+      "Bash(git push:*)",
+      "Read(//c/Users/oten/Documents/programming/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
