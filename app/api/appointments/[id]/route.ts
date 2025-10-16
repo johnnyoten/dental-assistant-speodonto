@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+
 const updateSchema = z.object({
   customerName: z.string().min(1).optional(),
   customerPhone: z.string().min(1).optional(),
@@ -20,16 +24,15 @@ function checkAuth(request: NextRequest): boolean {
 // GET - Busca um agendamento específico
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const { id } = await params
     const appointment = await prisma.appointment.findUnique({
-      where: { id },
+      where: { id: context.params.id },
       include: {
         conversation: {
           include: {
@@ -59,14 +62,13 @@ export async function GET(
 // PATCH - Atualiza um agendamento
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const { id } = await params
     const body = await request.json()
     const data = updateSchema.parse(body)
 
@@ -76,7 +78,7 @@ export async function PATCH(
     }
 
     const appointment = await prisma.appointment.update({
-      where: { id },
+      where: { id: context.params.id },
       data: updateData
     })
 
@@ -100,16 +102,15 @@ export async function PATCH(
 // DELETE - Remove um agendamento
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const { id } = await params
     await prisma.appointment.delete({
-      where: { id }
+      where: { id: context.params.id }
     })
 
     return NextResponse.json({ message: 'Appointment deleted successfully' })
