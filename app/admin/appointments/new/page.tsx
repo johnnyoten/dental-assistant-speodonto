@@ -27,6 +27,16 @@ const statusOptions = [
   { value: 'CONFIRMED', label: 'Confirmado' },
 ]
 
+const durationOptions = [
+  { value: '15', label: '15 minutos' },
+  { value: '30', label: '30 minutos' },
+  { value: '45', label: '45 minutos' },
+  { value: '60', label: '1 hora' },
+  { value: '90', label: '1h 30min' },
+  { value: '120', label: '2 horas' },
+  { value: '180', label: '3 horas' },
+]
+
 export default function NewAppointmentPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -38,6 +48,7 @@ export default function NewAppointmentPage() {
     service: '',
     date: '',
     time: '',
+    duration: 30,
     notes: '',
     status: 'CONFIRMED'
   })
@@ -72,9 +83,10 @@ export default function NewAppointmentPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const value = e.target.name === 'duration' ? Number(e.target.value) : e.target.value
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     })
   }
 
@@ -147,13 +159,24 @@ export default function NewAppointmentPage() {
                 />
               </div>
 
-              <Select
-                label="Status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                options={statusOptions}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  label="Duração"
+                  name="duration"
+                  value={String(formData.duration)}
+                  onChange={handleChange}
+                  options={durationOptions}
+                  required
+                />
+
+                <Select
+                  label="Status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  options={statusOptions}
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -17,6 +17,7 @@ model Appointment {
   service     String
   date        DateTime
   time        String
+  duration    Int      @default(30) // Duração em minutos
   status      AppointmentStatus @default(PENDING)
   notes       String?
   createdAt   DateTime @default(now())
@@ -27,6 +28,7 @@ model Appointment {
 
   @@index([date])
   @@index([customerPhone])
+  @@index([date, time])
 }
 
 model Conversation {

@@ -7,7 +7,10 @@
       "Bash(git remote set-url:*)",
       "Bash(git push:*)",
       "Read(//c/Users/oten/Documents/programming/**)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(npx prisma db push:*)"
     ],
     "deny": [],
     "ask": []

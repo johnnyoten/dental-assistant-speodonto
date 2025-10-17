@@ -1,148 +1,175 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import Layout from '@/components/Layout'
-import Card from '@/components/Card'
-import Button from '@/components/Button'
-import Input from '@/components/Input'
-import Select from '@/components/Select'
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import Layout from "@/components/Layout";
+import Card from "@/components/Card";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import Select from "@/components/Select";
 import {
   PhoneIcon,
   CalendarIcon,
   ClockIcon,
-  ChatBubbleLeftIcon
-} from '@heroicons/react/24/outline'
+  ChatBubbleLeftIcon,
+} from "@heroicons/react/24/outline";
 
 const serviceOptions = [
-  { value: 'Avaliação', label: 'Avaliação' },
-  { value: 'Limpeza', label: 'Limpeza' },
-  { value: 'Canal', label: 'Tratamento de Canal' },
-  { value: 'Extração', label: 'Extração' },
-  { value: 'Clareamento', label: 'Clareamento' },
-  { value: 'Restauração', label: 'Restauração' },
-  { value: 'Prótese', label: 'Prótese' },
-  { value: 'Ortodontia', label: 'Ortodontia' },
-  { value: 'Implante', label: 'Implante' },
-  { value: 'Outro', label: 'Outro' },
-]
+  { value: "Avaliação", label: "Avaliação" },
+  { value: "Limpeza", label: "Limpeza" },
+  { value: "Canal", label: "Tratamento de Canal" },
+  { value: "Extração", label: "Extração" },
+  { value: "Clareamento", label: "Clareamento" },
+  { value: "Restauração", label: "Restauração" },
+  { value: "Prótese", label: "Prótese" },
+  { value: "Ortodontia", label: "Ortodontia" },
+  { value: "Implante", label: "Implante" },
+  { value: "Outro", label: "Outro" },
+];
 
 const statusOptions = [
-  { value: 'PENDING', label: 'Pendente' },
-  { value: 'CONFIRMED', label: 'Confirmado' },
-  { value: 'COMPLETED', label: 'Concluído' },
-  { value: 'CANCELLED', label: 'Cancelado' },
-]
+  { value: "PENDING", label: "Pendente" },
+  { value: "CONFIRMED", label: "Confirmado" },
+  { value: "COMPLETED", label: "Concluído" },
+  { value: "CANCELLED", label: "Cancelado" },
+];
+
+const durationOptions = [
+  { value: "15", label: "15 minutos" },
+  { value: "30", label: "30 minutos" },
+  { value: "45", label: "45 minutos" },
+  { value: "60", label: "1 hora" },
+  { value: "90", label: "1h 30min" },
+  { value: "120", label: "2 horas" },
+  { value: "180", label: "3 horas" },
+];
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}min`;
+}
 
 export default function AppointmentDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const id = params.id as string
+  const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
 
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    service: '',
-    date: '',
-    time: '',
-    notes: '',
-    status: 'CONFIRMED'
-  })
+    customerName: "",
+    customerPhone: "",
+    service: "",
+    date: "",
+    time: "",
+    duration: 30,
+    notes: "",
+    status: "CONFIRMED",
+  });
 
   useEffect(() => {
-    fetchAppointment()
-  }, [id])
+    fetchAppointment();
+  }, [id]);
 
   const fetchAppointment = async () => {
     try {
-      const token = localStorage.getItem('adminToken')
+      const token = localStorage.getItem("adminToken");
       const response = await fetch(`/api/appointments/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         setFormData({
           customerName: data.customerName,
           customerPhone: data.customerPhone,
           service: data.service,
-          date: data.date.split('T')[0],
+          date: data.date.split("T")[0],
           time: data.time,
-          notes: data.notes || '',
-          status: data.status
-        })
+          duration: data.duration || 30,
+          notes: data.notes || "",
+          status: data.status,
+        });
       }
     } catch (err) {
-      setError('Erro ao carregar agendamento')
+      setError("Erro ao carregar agendamento");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleUpdate = async () => {
-    setSaving(true)
-    setError('')
+    setSaving(true);
+    setError("");
 
     try {
-      const token = localStorage.getItem('adminToken')
+      const token = localStorage.getItem("adminToken");
       const response = await fetch(`/api/appointments/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData)
-      })
+        body: JSON.stringify(formData),
+      });
 
       if (response.ok) {
-        setEditing(false)
-        fetchAppointment()
+        setEditing(false);
+        fetchAppointment();
       } else {
-        setError('Erro ao atualizar agendamento')
+        setError("Erro ao atualizar agendamento");
       }
     } catch (err) {
-      setError('Erro ao atualizar agendamento')
+      setError("Erro ao atualizar agendamento");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
+    if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
 
-    setDeleting(true)
+    setDeleting(true);
 
     try {
-      const token = localStorage.getItem('adminToken')
+      const token = localStorage.getItem("adminToken");
       const response = await fetch(`/api/appointments/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (response.ok) {
-        router.push('/admin/appointments')
+        router.push("/admin/appointments");
       } else {
-        setError('Erro ao excluir agendamento')
+        setError("Erro ao excluir agendamento");
       }
     } catch (err) {
-      setError('Erro ao excluir agendamento')
+      setError("Erro ao excluir agendamento");
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const value = e.target.name === "duration" ? Number(e.target.value) : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
+      [e.target.name]: value,
+    });
+  };
 
   if (loading) {
     return (
@@ -151,7 +178,7 @@ export default function AppointmentDetailPage() {
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
       </Layout>
-    )
+    );
   }
 
   return (
@@ -163,12 +190,24 @@ export default function AppointmentDetailPage() {
             onClick={() => router.back()}
             className="text-blue-600 font-medium mb-2 flex items-center space-x-1"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             <span>Voltar</span>
           </button>
-          <h2 className="text-2xl font-bold text-gray-900">Detalhes do Agendamento</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Detalhes do Agendamento
+          </h2>
         </div>
 
         {/* Conteúdo */}
@@ -218,13 +257,23 @@ export default function AppointmentDetailPage() {
                   />
                 </div>
 
-                <Select
-                  label="Status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  options={statusOptions}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Select
+                    label="Duração"
+                    name="duration"
+                    value={String(formData.duration)}
+                    onChange={handleChange}
+                    options={durationOptions}
+                  />
+
+                  <Select
+                    label="Status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    options={statusOptions}
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -233,7 +282,9 @@ export default function AppointmentDetailPage() {
                   <textarea
                     name="notes"
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
                     rows={3}
                     className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -248,12 +299,8 @@ export default function AppointmentDetailPage() {
             )}
 
             <div className="space-y-3">
-              <Button
-                onClick={handleUpdate}
-                fullWidth
-                disabled={saving}
-              >
-                {saving ? 'Salvando...' : 'Salvar Alterações'}
+              <Button onClick={handleUpdate} fullWidth disabled={saving}>
+                {saving ? "Salvando..." : "Salvar Alterações"}
               </Button>
 
               <Button
@@ -301,7 +348,9 @@ export default function AppointmentDetailPage() {
                     <div className="flex items-center space-x-2">
                       <CalendarIcon className="h-5 w-5 text-gray-400" />
                       <span className="text-base font-medium">
-                        {new Date(formData.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        {new Date(
+                          formData.date + "T00:00:00"
+                        ).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
                   </div>
@@ -310,21 +359,40 @@ export default function AppointmentDetailPage() {
                     <p className="text-sm text-gray-600 mb-1">Horário</p>
                     <div className="flex items-center space-x-2">
                       <ClockIcon className="h-5 w-5 text-gray-400" />
-                      <span className="text-base font-medium">{formData.time}</span>
+                      <span className="text-base font-medium">
+                        {formData.time}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Status</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    formData.status === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
-                    formData.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                    formData.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {statusOptions.find(s => s.value === formData.status)?.label}
-                  </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Duração</p>
+                    <p className="text-base font-medium text-gray-900">
+                      {formatDuration(formData.duration)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Status</p>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                        formData.status === "CONFIRMED"
+                          ? "bg-green-100 text-green-800"
+                          : formData.status === "PENDING"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : formData.status === "COMPLETED"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {
+                        statusOptions.find((s) => s.value === formData.status)
+                          ?.label
+                      }
+                    </span>
+                  </div>
                 </div>
 
                 {formData.notes && (
@@ -340,13 +408,20 @@ export default function AppointmentDetailPage() {
 
             <div className="space-y-3">
               <Button
+                className="mb-3"
                 onClick={() => setEditing(true)}
                 fullWidth
               >
                 Editar Agendamento
               </Button>
 
-              <a href={`https://wa.me/${formData.customerPhone.replace(/\D/g, '')}`} target="_blank">
+              <a
+                href={`https://wa.me/+55${formData.customerPhone.replace(
+                  /\D/g,
+                  ""
+                )}`}
+                target="_blank"
+              >
                 <Button
                   variant="success"
                   fullWidth
@@ -363,12 +438,12 @@ export default function AppointmentDetailPage() {
                 onClick={handleDelete}
                 disabled={deleting}
               >
-                {deleting ? 'Excluindo...' : 'Excluir Agendamento'}
+                {deleting ? "Excluindo..." : "Excluir Agendamento"}
               </Button>
             </div>
           </div>
         )}
       </div>
     </Layout>
-  )
+  );
 }

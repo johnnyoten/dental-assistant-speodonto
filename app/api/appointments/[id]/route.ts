@@ -12,6 +12,7 @@ const updateSchema = z.object({
   service: z.string().min(1).optional(),
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  duration: z.number().min(15).max(480).optional(),
   notes: z.string().optional(),
   status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']).optional()
 })
@@ -19,6 +20,51 @@ const updateSchema = z.object({
 function checkAuth(request: NextRequest): boolean {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '')
   return token === process.env.ADMIN_TOKEN
+}
+
+// Função para verificar conflito de horários
+async function checkTimeConflict(
+  date: Date,
+  time: string,
+  duration: number,
+  excludeId?: string
+): Promise<boolean> {
+  const [hours, minutes] = time.split(':').map(Number)
+  const startMinutes = hours * 60 + minutes
+  const endMinutes = startMinutes + duration
+
+  const existingAppointments = await prisma.appointment.findMany({
+    where: {
+      date: date,
+      status: {
+        not: 'CANCELLED'
+      },
+      ...(excludeId ? { id: { not: excludeId } } : {})
+    },
+    select: {
+      id: true,
+      time: true,
+      duration: true
+    }
+  })
+
+  for (const apt of existingAppointments) {
+    const [aptHours, aptMinutes] = apt.time.split(':').map(Number)
+    const aptStartMinutes = aptHours * 60 + aptMinutes
+    const aptEndMinutes = aptStartMinutes + apt.duration
+
+    const hasOverlap = (
+      (startMinutes >= aptStartMinutes && startMinutes < aptEndMinutes) ||
+      (endMinutes > aptStartMinutes && endMinutes <= aptEndMinutes) ||
+      (startMinutes <= aptStartMinutes && endMinutes >= aptEndMinutes)
+    )
+
+    if (hasOverlap) {
+      return true
+    }
+  }
+
+  return false
 }
 
 // GET - Busca um agendamento específico
@@ -72,9 +118,49 @@ export async function PATCH(
     const body = await request.json()
     const data = updateSchema.parse(body)
 
+    // Buscar agendamento atual
+    const currentAppointment = await prisma.appointment.findUnique({
+      where: { id: context.params.id }
+    })
+
+    if (!currentAppointment) {
+      return NextResponse.json(
+        { error: 'Appointment not found' },
+        { status: 404 }
+      )
+    }
+
     const updateData: any = { ...data }
     if (data.date) {
       updateData.date = new Date(data.date)
+    }
+
+    // Verificar conflito apenas se data, hora ou duração mudaram
+    const dateChanged = data.date && new Date(data.date).getTime() !== currentAppointment.date.getTime()
+    const timeChanged = data.time && data.time !== currentAppointment.time
+    const durationChanged = data.duration && data.duration !== currentAppointment.duration
+
+    if (dateChanged || timeChanged || durationChanged) {
+      const checkDate = data.date ? new Date(data.date) : currentAppointment.date
+      const checkTime = data.time || currentAppointment.time
+      const checkDuration = data.duration || currentAppointment.duration
+
+      const hasConflict = await checkTimeConflict(
+        checkDate,
+        checkTime,
+        checkDuration,
+        context.params.id
+      )
+
+      if (hasConflict) {
+        return NextResponse.json(
+          {
+            error: 'Conflito de horário',
+            message: 'Já existe um agendamento neste horário. Por favor, escolha outro horário.'
+          },
+          { status: 409 }
+        )
+      }
     }
 
     const appointment = await prisma.appointment.update({
