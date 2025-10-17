@@ -6,15 +6,15 @@ import { geminiAIService } from '@/lib/ai-service-gemini'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Tipos Z-API
-interface ZApiWebhookMessage {
+// Tipos Z-API (estrutura real da Z-API)
+interface ZApiWebhook {
   instanceId: string
   phone: string
   fromMe: boolean
   momment: number
   status: string
   chatName: string
-  senderPhoto: string
+  senderPhoto: string | null
   senderName: string
   participantPhone?: string
   photo: string
@@ -30,12 +30,14 @@ interface ZApiWebhookMessage {
   messageId: string
   connectedPhone: string
   waitingMessage: boolean
-}
-
-interface ZApiWebhook {
-  event: string
-  instanceId: string
-  data: ZApiWebhookMessage
+  isStatusReply?: boolean
+  chatLid?: string
+  isEdit?: boolean
+  isGroup?: boolean
+  isNewsletter?: boolean
+  participantLid?: string | null
+  forwarded?: boolean
+  fromApi?: boolean
 }
 
 /**
@@ -55,18 +57,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Ignorar mensagens enviadas por nós
-    if (body.data.fromMe) {
+    if (body.fromMe) {
       console.log('⏭️ Mensagem enviada por nós, ignorando')
       return NextResponse.json({ status: 'ignored', reason: 'fromMe' })
     }
 
-    // Ignorar se não for mensagem recebida
-    if (body.event !== 'message-received' && body.event !== 'messages.upsert') {
-      console.log('⏭️ Evento ignorado:', body.event)
-      return NextResponse.json({ status: 'ignored', reason: 'not_message_event' })
+    // Ignorar se não for mensagem recebida (type: ReceivedCallback)
+    if (body.type !== 'ReceivedCallback') {
+      console.log('⏭️ Tipo ignorado:', body.type)
+      return NextResponse.json({ status: 'ignored', reason: 'not_received_callback' })
     }
 
-    const messageData = body.data
+    const messageData = body
 
     // Extrair texto da mensagem
     let messageText = ''
