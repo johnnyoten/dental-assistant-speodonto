@@ -1,94 +1,140 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Layout from '@/components/Layout'
-import Card from '@/components/Card'
-import Button from '@/components/Button'
-import Input from '@/components/Input'
-import Select from '@/components/Select'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Layout from "@/components/Layout";
+import Card from "@/components/Card";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import Select from "@/components/Select";
 
 const serviceOptions = [
-  { value: '', label: 'Selecione um serviço' },
-  { value: 'Avaliação', label: 'Avaliação' },
-  { value: 'Limpeza', label: 'Limpeza' },
-  { value: 'Canal', label: 'Tratamento de Canal' },
-  { value: 'Extração', label: 'Extração' },
-  { value: 'Clareamento', label: 'Clareamento' },
-  { value: 'Restauração', label: 'Restauração' },
-  { value: 'Prótese', label: 'Prótese' },
-  { value: 'Ortodontia', label: 'Ortodontia' },
-  { value: 'Implante', label: 'Implante' },
-  { value: 'Outro', label: 'Outro' },
-]
+  { value: "", label: "Selecione um serviço" },
+  { value: "Avaliação", label: "Avaliação" },
+  { value: "Limpeza", label: "Limpeza" },
+  { value: "Canal", label: "Tratamento de Canal" },
+  { value: "Extração", label: "Extração" },
+  { value: "Clareamento", label: "Clareamento" },
+  { value: "Restauração", label: "Restauração" },
+  { value: "Prótese", label: "Prótese" },
+  { value: "Ortodontia", label: "Ortodontia" },
+  { value: "Implante", label: "Implante" },
+  { value: "Outro", label: "Outro" },
+];
 
 const statusOptions = [
-  { value: 'PENDING', label: 'Pendente' },
-  { value: 'CONFIRMED', label: 'Confirmado' },
-]
+  { value: "PENDING", label: "Pendente" },
+  { value: "CONFIRMED", label: "Confirmado" },
+];
 
 const durationOptions = [
-  { value: '15', label: '15 minutos' },
-  { value: '30', label: '30 minutos' },
-  { value: '45', label: '45 minutos' },
-  { value: '60', label: '1 hora' },
-  { value: '90', label: '1h 30min' },
-  { value: '120', label: '2 horas' },
-  { value: '180', label: '3 horas' },
-]
+  { value: "15", label: "15 minutos" },
+  { value: "30", label: "30 minutos" },
+  { value: "45", label: "45 minutos" },
+  { value: "60", label: "1 hora" },
+  { value: "90", label: "1h 30min" },
+  { value: "120", label: "2 horas" },
+  { value: "180", label: "3 horas" },
+];
 
 export default function NewAppointmentPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [dateDisplay, setDateDisplay] = useState("");
 
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    service: '',
-    date: '',
-    time: '',
+    customerName: "",
+    customerPhone: "",
+    service: "",
+    date: "",
+    time: "",
     duration: 30,
-    notes: '',
-    status: 'CONFIRMED'
-  })
+    notes: "",
+    status: "CONFIRMED",
+  });
+
+  // Função para formatar data DD/MM/YYYY -> YYYY-MM-DD (ISO)
+  const convertToISO = (dateStr: string): string => {
+    const parts = dateStr
+      .replace(/\D/g, "")
+      .match(/(\d{0,2})(\d{0,2})(\d{0,4})/);
+    if (!parts) return "";
+
+    const [, day, month, year] = parts;
+    if (year.length === 4 && month && day) {
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    return "";
+  };
+
+  // Formatar input de data DD/MM/YYYY
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+
+    // Limitar a 8 dígitos
+    if (value.length > 8) value = value.slice(0, 8);
+
+    // Adicionar barras automaticamente
+    let formatted = value;
+    if (value.length >= 2) {
+      formatted = value.slice(0, 2) + "/" + value.slice(2);
+    }
+    if (value.length >= 4) {
+      formatted =
+        value.slice(0, 2) + "/" + value.slice(2, 4) + "/" + value.slice(4);
+    }
+
+    setDateDisplay(formatted);
+
+    // Converter para formato ISO se data completa
+    if (value.length === 8) {
+      const isoDate = convertToISO(formatted);
+      setFormData({ ...formData, date: isoDate });
+    } else {
+      setFormData({ ...formData, date: "" });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
+      const token = localStorage.getItem("adminToken");
+      const response = await fetch("/api/appointments", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData)
-      })
+        body: JSON.stringify(formData),
+      });
 
       if (response.ok) {
-        router.push('/admin/appointments')
+        router.push("/admin/appointments");
       } else {
-        const data = await response.json()
-        setError(data.error || 'Erro ao criar agendamento')
+        const data = await response.json();
+        setError(data.message || data.error || "Erro ao criar agendamento");
       }
     } catch (err) {
-      setError('Erro ao criar agendamento')
+      setError("Erro ao criar agendamento");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.name === 'duration' ? Number(e.target.value) : e.target.value
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const value =
+      e.target.name === "duration" ? Number(e.target.value) : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: value
-    })
-  }
+      [e.target.name]: value,
+    });
+  };
 
   return (
     <Layout>
@@ -99,8 +145,18 @@ export default function NewAppointmentPage() {
             onClick={() => router.back()}
             className="text-blue-600 font-medium mb-2 flex items-center space-x-1"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             <span>Voltar</span>
           </button>
@@ -140,14 +196,20 @@ export default function NewAppointmentPage() {
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Data"
-                  name="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Data *
+                  </label>
+                  <input
+                    type="text"
+                    value={dateDisplay}
+                    onChange={handleDateChange}
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    required
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
                 <Input
                   label="Horário"
@@ -185,7 +247,9 @@ export default function NewAppointmentPage() {
                 <textarea
                   name="notes"
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   rows={3}
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Adicione observações sobre o agendamento..."
@@ -201,12 +265,8 @@ export default function NewAppointmentPage() {
           )}
 
           <div className="space-y-3">
-            <Button
-              type="submit"
-              fullWidth
-              disabled={loading}
-            >
-              {loading ? 'Criando...' : 'Criar Agendamento'}
+            <Button type="submit" fullWidth disabled={loading}>
+              {loading ? "Criando..." : "Criar Agendamento"}
             </Button>
 
             <Button
@@ -221,5 +281,5 @@ export default function NewAppointmentPage() {
         </form>
       </div>
     </Layout>
-  )
+  );
 }

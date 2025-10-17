@@ -66,6 +66,7 @@ export default function AppointmentDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
+  const [dateDisplay, setDateDisplay] = useState("");
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -82,6 +83,48 @@ export default function AppointmentDetailPage() {
     fetchAppointment();
   }, [id]);
 
+  // Converter ISO para DD/MM/YYYY
+  const formatDateToBR = (isoDate: string): string => {
+    const [year, month, day] = isoDate.split("-");
+    return `${day}/${month}/${year}`;
+  };
+
+  // Converter DD/MM/YYYY para ISO
+  const convertToISO = (dateStr: string): string => {
+    const parts = dateStr.replace(/\D/g, "").match(/(\d{0,2})(\d{0,2})(\d{0,4})/);
+    if (!parts) return "";
+
+    const [, day, month, year] = parts;
+    if (year.length === 4 && month && day) {
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    return "";
+  };
+
+  // Handler para input de data DD/MM/YYYY
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+
+    if (value.length > 8) value = value.slice(0, 8);
+
+    let formatted = value;
+    if (value.length >= 2) {
+      formatted = value.slice(0, 2) + "/" + value.slice(2);
+    }
+    if (value.length >= 4) {
+      formatted = value.slice(0, 2) + "/" + value.slice(2, 4) + "/" + value.slice(4);
+    }
+
+    setDateDisplay(formatted);
+
+    if (value.length === 8) {
+      const isoDate = convertToISO(formatted);
+      setFormData({ ...formData, date: isoDate });
+    } else {
+      setFormData({ ...formData, date: "" });
+    }
+  };
+
   const fetchAppointment = async () => {
     try {
       const token = localStorage.getItem("adminToken");
@@ -91,16 +134,18 @@ export default function AppointmentDetailPage() {
 
       if (response.ok) {
         const data = await response.json();
+        const isoDate = data.date.split("T")[0];
         setFormData({
           customerName: data.customerName,
           customerPhone: data.customerPhone,
           service: data.service,
-          date: data.date.split("T")[0],
+          date: isoDate,
           time: data.time,
           duration: data.duration || 30,
           notes: data.notes || "",
           status: data.status,
         });
+        setDateDisplay(formatDateToBR(isoDate));
       }
     } catch (err) {
       setError("Erro ao carregar agendamento");
@@ -240,13 +285,19 @@ export default function AppointmentDetailPage() {
                 />
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Data"
-                    name="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Data
+                    </label>
+                    <input
+                      type="text"
+                      value={dateDisplay}
+                      onChange={handleDateChange}
+                      placeholder="DD/MM/YYYY"
+                      maxLength={10}
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
 
                   <Input
                     label="Horário"
