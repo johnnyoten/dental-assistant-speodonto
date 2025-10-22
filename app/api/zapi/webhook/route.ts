@@ -179,10 +179,11 @@ export async function POST(request: NextRequest) {
           `Horário: ${appointmentData.data.time}\n\n` +
           `Nos vemos em breve! 😊`
 
-        await zapiService.sendText({
+        const zapiConfirmation = await zapiService.sendText({
           phone: phoneNumber,
           message: confirmationMessage
         })
+        console.log('📨 Resposta confirmação Z-API:', JSON.stringify(zapiConfirmation, null, 2))
       } catch (error) {
         console.error('❌ Erro ao criar agendamento:', error)
         // Se erro, envia resposta normal da IA
@@ -194,10 +195,11 @@ export async function POST(request: NextRequest) {
     } else {
       // Enviar resposta da IA via Z-API
       console.log('📤 Enviando resposta via Z-API...')
-      await zapiService.sendText({
+      const zapiResponse = await zapiService.sendText({
         phone: phoneNumber,
         message: aiResponse
       })
+      console.log('📨 Resposta do Z-API:', JSON.stringify(zapiResponse, null, 2))
     }
 
     console.log('✅ Resposta enviada com sucesso!')

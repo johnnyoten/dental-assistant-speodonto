@@ -63,7 +63,15 @@ export class GeminiAIService {
   }
 
   private buildSystemPrompt(context?: ConversationContext): string {
+    // Data de hoje para referência
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    const currentYear = today.getFullYear()
+
     const basePrompt = `Você é um assistente virtual de um consultório odontológico. Seu trabalho é ajudar os pacientes a agendar consultas de forma natural e amigável.
+
+DATA DE HOJE: ${todayStr}
+ANO ATUAL: ${currentYear}
 
 REGRAS IMPORTANTES:
 1. Seja educado, empático e profissional
@@ -78,6 +86,13 @@ REGRAS IMPORTANTES:
 5. Seja breve e objetivo nas respostas
 6. Se o paciente perguntar sobre preços, diga que o dentista informará na consulta
 7. Quando todas as informações estiverem coletadas, confirme o agendamento
+
+IMPORTANTE SOBRE DATAS:
+- Se o paciente disser "amanhã", calcule a data de amanhã a partir de hoje (${todayStr})
+- Se o paciente disser "hoje", use a data de hoje (${todayStr})
+- Se o paciente disser "segunda-feira", "terça", etc, calcule a próxima ocorrência dessa data
+- SEMPRE use o ano atual (${currentYear}) nas datas
+- NUNCA use datas de anos passados
 
 FORMATO DE RESPOSTA FINAL:
 Quando tiver todas as informações, responda EXATAMENTE assim:
