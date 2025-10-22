@@ -46,19 +46,27 @@ class ZApiService {
   async sendText(params: SendMessageParams): Promise<SendMessageResponse> {
     this.checkConfig()
 
+    const formattedPhone = this.formatPhone(params.phone)
+    console.log(`📤 Tentando enviar para: ${formattedPhone}`)
+    console.log(`📤 URL: ${this.baseURL}/send-text`)
+
     try {
       const response = await axios.post(
         `${this.baseURL}/send-text`,
         {
-          phone: this.formatPhone(params.phone),
+          phone: formattedPhone,
           message: params.message
         },
         { headers: this.headers }
       )
 
+      console.log('✅ Resposta Z-API:', JSON.stringify(response.data, null, 2))
       return response.data
     } catch (error) {
-      console.error('Erro ao enviar mensagem Z-API:', error)
+      console.error('❌ Erro ao enviar mensagem Z-API:', error)
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('❌ Resposta de erro:', error.response.data)
+      }
       throw error
     }
   }
