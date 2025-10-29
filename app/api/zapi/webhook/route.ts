@@ -68,6 +68,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: 'ignored', reason: 'not_received_callback' })
     }
 
+    // Ignorar mensagens que ainda estão sendo carregadas (waitingMessage)
+    if (body.waitingMessage) {
+      console.log('⏭️ Mensagem ainda carregando (waitingMessage: true), aguardando...')
+      return NextResponse.json({ status: 'ignored', reason: 'waiting_message' })
+    }
+
     const messageData = body
 
     // Log completo para debug
