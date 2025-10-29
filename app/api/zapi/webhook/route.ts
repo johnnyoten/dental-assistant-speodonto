@@ -70,6 +70,16 @@ export async function POST(request: NextRequest) {
 
     const messageData = body
 
+    // Log completo para debug
+    console.log('🔍 Tipos de conteúdo disponíveis:', {
+      hasText: !!messageData.text,
+      hasImage: !!messageData.image,
+      hasAudio: !!(messageData as any).audio,
+      hasVideo: !!(messageData as any).video,
+      hasDocument: !!(messageData as any).document,
+      allKeys: Object.keys(messageData)
+    })
+
     // Extrair texto da mensagem
     let messageText = ''
     if (messageData.text?.message) {
@@ -77,7 +87,7 @@ export async function POST(request: NextRequest) {
     } else if (messageData.image?.caption) {
       messageText = messageData.image.caption
     } else {
-      console.log('⏭️ Mensagem sem texto, ignorando')
+      console.log('⏭️ Mensagem sem texto, ignorando. Body completo:', JSON.stringify(body, null, 2))
       return NextResponse.json({ status: 'ignored', reason: 'no_text' })
     }
 
