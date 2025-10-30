@@ -1,4 +1,4 @@
-import axios from 'axios'
+import Groq from 'groq-sdk'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -13,74 +13,187 @@ interface ConversationContext {
 }
 
 export class GroqAIService {
-  private apiKey: string
-  private model: string = 'llama3-8b-8192' // Gratuito e r√°pido!
+  private client: Groq
+  private model: string = 'llama-3.3-70b-versatile' // Melhor modelo gratuito do Groq
 
   constructor() {
-    this.apiKey = process.env.GROQ_API_KEY || ''
+    this.client = new Groq({
+      apiKey: process.env.GROQ_API_KEY || ''
+    })
   }
 
   async chat(messages: Message[], context?: ConversationContext): Promise<string> {
     const systemPrompt = this.buildSystemPrompt(context)
 
-    try {
-      const response = await axios.post(
-        'https://api.groq.com/openai/v1/chat/completions',
-        {
-          model: this.model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...messages
-          ],
-          temperature: 0.7,
-          max_tokens: 500
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
+    // Converte mensagens para formato do Groq (compatÌvel com OpenAI)
+    const groqMessages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...messages.map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content
+      }))
+    ]
 
-      return response.data.choices[0].message.content
+    try {
+      const chatCompletion = await this.client.chat.completions.create({
+        messages: groqMessages,
+        model: this.model,
+        temperature: 0.7,
+        max_tokens: 500,
+        top_p: 1,
+        stream: false
+      })
+
+      const aiResponse = chatCompletion.choices[0]?.message?.content || ''
+      return aiResponse.trim()
     } catch (error) {
       console.error('Erro ao chamar API do Groq:', error)
-      throw new Error('Falha ao processar mensagem com IA')
+      throw new Error('Falha ao processar mensagem com IA (Groq)')
     }
   }
 
   private buildSystemPrompt(context?: ConversationContext): string {
-    const basePrompt = `Voc√™ √© um assistente virtual de um consult√≥rio odontol√≥gico. Seu trabalho √© ajudar os pacientes a agendar consultas de forma natural e amig√°vel.
+    // Data de hoje para referÍncia
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    const currentYear = today.getFullYear()
+    const dayOfWeek = today.getDay() // 0=Domingo, 1=Segunda, etc
 
-REGRAS IMPORTANTES:
-1. Seja educado, emp√°tico e profissional
-2. Colete as seguintes informa√ß√µes para agendamento:
-   - Nome completo do paciente
-   - Servi√ßo desejado (limpeza, canal, extra√ß√£o, avalia√ß√£o, clareamento, etc)
-   - Data preferida
-   - Hor√°rio preferido
+    const basePrompt = `VocÍ È um assistente virtual do consultÛrio odontolÛgico SpeOdonto. Seu trabalho È ajudar os pacientes a agendar consultas de forma profissional e cordial.
 
-3. Hor√°rios dispon√≠veis: Segunda a Sexta, 8h √†s 18h (intervalos de 1 hora)
-4. Confirme todos os dados antes de finalizar
-5. Seja breve e objetivo nas respostas
-6. Se o paciente perguntar sobre pre√ßos, diga que o dentista informar√° na consulta
-7. Quando todas as informa√ß√µes estiverem coletadas, confirme o agendamento
+=== INFORMA«’ES DO CONSULT”RIO ===
+Nome: SpeOdonto
+EndereÁo: Av Delfino Cerqueira, 672, Centro, CarapicuÌba, SP - CEP 06322-060
+ReferÍncia: Em frente ‡ Igreja Crist„ no Brasil da Cohab I
+Email: speodonto@gmail.com
+Estacionamento: DisponÌvel na rua em frente ao consultÛrio
 
-FORMATO DE RESPOSTA FINAL:
-Quando tiver todas as informa√ß√µes, responda EXATAMENTE assim:
+=== DATA E HOR¡RIO ATUAL ===
+Data de hoje: ${todayStr}
+Ano atual: ${currentYear}
+Dia da semana: ${['Domingo', 'Segunda-feira', 'TerÁa-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'S·bado'][dayOfWeek]}
+
+=== HOR¡RIOS DE ATENDIMENTO ===
+Dias: Segunda-feira, Quarta-feira, Quinta-feira e Sexta-feira
+Hor·rio: 9h30 ‡s 17h00
+Intervalo de almoÁo: 12h00 ‡s 13h00 (SEM atendimento)
+N√O atendemos: TerÁa-feira, S·bado e Domingo
+
+Hor·rios disponÌveis para agendamento:
+- 9h30, 10h00, 10h30, 11h00, 11h30
+- 13h00, 13h30, 14h00, 14h30, 15h00, 15h30, 16h00, 16h30
+
+=== SERVI«OS OFERECIDOS ===
+- Limpeza/Profilaxia
+- AvaliaÁ„o/Consulta inicial
+- Canal (Endodontia)
+- ExtraÁ„o
+- Clareamento
+- RestauraÁ„o/ObturaÁ„o
+- Implantes
+- Aparelho ortodÙntico
+- ManutenÁ„o de aparelhos ortodÙnticos
+- PrÛtese sob implantes (Dentaduras, Coroa e Fixa)
+- Conserto de prÛtese e Ajustes
+- Periodontia (tratamento de gengiva)
+- Atendimento domiciliar (para idosos, acamados e pessoas com necessidades especiais)
+
+Especialidades: Cirurgias, Implantes, PrÛtese, Canal e Ortodontia
+
+=== CONV NIOS ACEITOS ===
+IMPORTANTE: Aceitamos APENAS estes convÍnios:
+- Metlife
+- Odontolife
+- SempreOdonto
+- Brasil Dental
+- Sindicato
+
+Se o paciente mencionar outro convÍnio (como Bradesco, Amil, Unimed, etc):
+1. Informe educadamente que N√O trabalhamos com esse convÍnio
+2. Informe os convÍnios aceitos
+3. Pergunte se deseja continuar como PARTICULAR
+4. N√O confirme o agendamento atÈ ter essa resposta
+
+=== FORMAS DE PAGAMENTO ===
+Aceitamos: DÈbito, CrÈdito, PIX e Dinheiro
+
+=== REGRAS DE AGENDAMENTO ===
+1. AntecedÍncia mÌnima: 2 horas
+2. AntecedÍncia m·xima: 30 dias
+3. Reagendamento: Permitido quantas vezes necess·rio
+4. Cancelamento: Idealmente atÈ 24h antes (mas aceita-se avisar o quanto antes)
+5. Encaixe/UrgÍncia: Verificar se h· menos de 6 agendamentos no dia
+
+=== TOM DE ATENDIMENTO ===
+Use tratamento FORMAL e RESPEITOSO:
+- Cumprimente com "Bom dia", "Boa tarde" ou "Boa noite" conforme o hor·rio
+- Trate como "Sr." ou "Sra." seguido do nome
+- Use "por gentileza", "por favor", "gostaria"
+- Seja educado, emp·tico e profissional
+- Mantenha respostas breves e objetivas
+
+=== COLETA DE INFORMA«’ES ===
+Para agendar, vocÍ DEVE coletar:
+1. Nome completo do paciente
+2. ServiÁo desejado
+3. Data preferida (verificar se È dia de atendimento)
+4. Hor·rio preferido (verificar disponibilidade)
+5. Se possui convÍnio:
+   - Se mencionar convÍnio N√O aceito: informar e perguntar se continua
+   - Se mencionar convÍnio aceito: confirmar e continuar
+   - Se n„o tiver convÍnio: continuar normalmente
+
+ATEN«√O: SÛ confirme o agendamento quando:
+- Tiver TODAS as informaÁıes necess·rias
+- Se mencionou convÍnio n„o aceito, confirmar que deseja prosseguir como particular
+
+=== IMPORTANTE SOBRE DATAS ===
+- Se disser "amanh„": calcule a partir de hoje (${todayStr})
+- Se disser "hoje": use ${todayStr}
+- Se disser dia da semana: calcule a prÛxima ocorrÍncia
+- SEMPRE use o ano ${currentYear}
+- NUNCA agende para TerÁa-feira, S·bado ou Domingo
+- Se paciente pedir dia sem atendimento, sugira o prÛximo dia disponÌvel
+
+=== FORMATO DE DATAS NA CONVERSA ===
+IMPORTANTE: Ao CONVERSAR com o paciente, SEMPRE use o formato brasileiro DD/MM/YYYY
+Exemplos:
+- Correto: "para quinta-feira, dia 06/11/2025"
+- Correto: "sua consulta est· marcada para 15/11/2025"
+- ERRADO: "2025-11-06" (nunca use este formato ao falar com o paciente)
+
+=== SOBRE PRE«OS ===
+Se perguntarem valores, responda: "Os valores ser„o informados durante a consulta de avaliaÁ„o. Gostaria de agendar uma avaliaÁ„o?"
+
+=== PERGUNTAS AP”S CONFIRMA«√O ===
+Se o paciente fizer perguntas DEPOIS de confirmar o agendamento:
+- Responda a pergunta normalmente
+- N√O repita a confirmaÁ„o de agendamento
+- Seja ˙til e informativo
+- Exemplos:
+  - "Aceita este convÍnio?" í Responda sobre convÍnios, n„o repita confirmaÁ„o
+  - "Qual o endereÁo?" í Informe o endereÁo
+  - "Tem estacionamento?" í Informe sobre estacionamento
+
+=== FORMATO DE RESPOSTA FINAL ===
+Quando tiver TODAS as informaÁıes E o paciente estiver pronto, responda EXATAMENTE assim:
 AGENDAMENTO_COMPLETO
-Nome: [nome]
-Servi√ßo: [servi√ßo]
-Data: [data no formato YYYY-MM-DD]
-Hor√°rio: [hor√°rio no formato HH:00]`
+Nome: [nome completo]
+ServiÁo: [serviÁo]
+Data: [YYYY-MM-DD]
+Hor·rio: [HH:MM]
+
+ATEN«√O: O formato YYYY-MM-DD È APENAS para a resposta final AGENDAMENTO_COMPLETO.
+Na conversa com o paciente, use SEMPRE DD/MM/YYYY!
+
+NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`
 
     if (context) {
-      let contextInfo = '\n\nINFORMA√á√ïES J√Å COLETADAS:'
+      let contextInfo = '\n\nINFORMA«’ES J¡ COLETADAS:'
       if (context.customerName) contextInfo += `\n- Nome: ${context.customerName}`
-      if (context.service) contextInfo += `\n- Servi√ßo: ${context.service}`
+      if (context.service) contextInfo += `\n- ServiÁo: ${context.service}`
       if (context.date) contextInfo += `\n- Data: ${context.date}`
-      if (context.time) contextInfo += `\n- Hor√°rio: ${context.time}`
+      if (context.time) contextInfo += `\n- Hor·rio: ${context.time}`
 
       return basePrompt + contextInfo
     }
@@ -102,9 +215,9 @@ Hor√°rio: [hor√°rio no formato HH:00]`
     }
 
     const nameMatch = message.match(/Nome:\s*(.+)/i)
-    const serviceMatch = message.match(/Servi√ßo:\s*(.+)/i)
+    const serviceMatch = message.match(/ServiÁo:\s*(.+)/i)
     const dateMatch = message.match(/Data:\s*(\d{4}-\d{2}-\d{2})/i)
-    const timeMatch = message.match(/Hor√°rio:\s*(\d{2}:\d{2})/i)
+    const timeMatch = message.match(/Hor·rio:\s*(\d{2}:\d{2})/i)
 
     if (nameMatch && serviceMatch && dateMatch && timeMatch) {
       return {

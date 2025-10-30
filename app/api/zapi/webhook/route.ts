@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { zapiService } from '@/lib/zapi-service'
-import { geminiAIService } from '@/lib/ai-service-gemini'
+import { groqAIService } from '@/lib/ai-service-groq'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,11 +144,11 @@ export async function POST(request: NextRequest) {
     // Obter contexto da conversa
     const context = (conversation.context as any) || {}
 
-    // Processar com IA Gemini
-    console.log('🤖 Processando com Gemini...')
-    const aiResponse = await geminiAIService.chat(messageHistory, context)
+    // Processar com IA Groq
+    console.log('🤖 Processando com Groq...')
+    const aiResponse = await groqAIService.chat(messageHistory, context)
 
-    console.log('🤖 Resposta Gemini:', aiResponse)
+    console.log('🤖 Resposta Groq:', aiResponse)
 
     // Salvar resposta da IA
     await prisma.message.create({
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Verificar se o agendamento foi completado
-    const appointmentData = geminiAIService.extractAppointmentData(aiResponse)
+    const appointmentData = groqAIService.extractAppointmentData(aiResponse)
 
     if (appointmentData.isComplete && appointmentData.data) {
       try {
