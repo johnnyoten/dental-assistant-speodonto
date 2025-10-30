@@ -1,6 +1,7 @@
-# 🎨 Tutorial Frontend - Dental Assistant
+# 🎨 Tutorial Frontend - Clínica Speodonto
 
 ## Stack do Frontend
+
 - **Next.js 14** - Framework React
 - **TypeScript** - Tipagem
 - **Tailwind CSS** - Estilos
@@ -79,12 +80,15 @@ Acesse: `http://localhost:3000`
 #### Descobrir IP do Computador:
 
 **Windows:**
+
 ```bash
 ipconfig
 ```
+
 Procure por `IPv4 Address` (ex: 192.168.1.100)
 
 **Mac/Linux:**
+
 ```bash
 ifconfig | grep inet
 ```
@@ -207,8 +211,8 @@ npm run dev
   value={servico}
   onChange={(e) => setServico(e.target.value)}
   options={[
-    { value: 'limpeza', label: 'Limpeza' },
-    { value: 'canal', label: 'Canal' }
+    { value: "limpeza", label: "Limpeza" },
+    { value: "canal", label: "Canal" },
   ]}
 />
 ```
@@ -220,12 +224,14 @@ npm run dev
 ### 1. Login (`/login`)
 
 **Funcionalidade:**
+
 - Input para token
 - Validação ao tentar logar
 - Redireciona para `/admin` se válido
 - Salva token no localStorage
 
 **Fluxo:**
+
 1. Usuário digita `ADMIN_TOKEN`
 2. Sistema testa fazendo request à API
 3. Se válido → salva e redireciona
@@ -236,17 +242,20 @@ npm run dev
 ### 2. Dashboard (`/admin`)
 
 **Widgets:**
+
 - 4 cards de estatísticas
 - Lista de próximas consultas (5)
 - Ações rápidas (Nova consulta, Nova receita)
 
 **Dados mostrados:**
+
 - Total de agendamentos
 - Agendamentos este mês
 - Total de conversas
 - Próximos agendamentos
 
 **Design:**
+
 - Grid 2x2 no mobile
 - Cards coloridos
 - Ícones visuais
@@ -256,6 +265,7 @@ npm run dev
 ### 3. Agendamentos (`/admin/appointments`)
 
 **Funcionalidades:**
+
 - Lista agrupada por data
 - Filtros: Hoje | Próximos | Todos
 - Cards clicáveis (vai para detalhes)
@@ -263,6 +273,7 @@ npm run dev
 - Link para WhatsApp
 
 **Layout Mobile:**
+
 ```
 ┌─────────────────────┐
 │ Agendamentos  [+]   │
@@ -288,15 +299,17 @@ npm run dev
 ### 4. Novo Agendamento (`/admin/appointments/new`)
 
 **Formulário:**
-- Nome *
-- Telefone *
-- Serviço (dropdown) *
-- Data (date picker) *
-- Horário (time picker) *
+
+- Nome \*
+- Telefone \*
+- Serviço (dropdown) \*
+- Data (date picker) \*
+- Horário (time picker) \*
 - Status (dropdown)
 - Observações (textarea)
 
 **Validação:**
+
 - Campos obrigatórios marcados
 - Erro visual se campo vazio
 - Botão desabilitado enquanto salva
@@ -308,12 +321,14 @@ npm run dev
 **2 Modos:**
 
 **Visualização:**
+
 - Mostra todos os dados
 - Botão "Editar"
 - Botão "WhatsApp" (abre conversa)
 - Botão "Excluir" (confirma antes)
 
 **Edição:**
+
 - Formulário preenchido
 - Botão "Salvar"
 - Botão "Cancelar"
@@ -324,12 +339,14 @@ npm run dev
 ### 6. Receitas (`/admin/prescriptions`)
 
 **Funcionalidades:**
+
 - Lista de receitas criadas
 - Busca por nome do paciente
 - Botão "Copiar" em cada receita
 - Preview (primeiros 150 chars)
 
 **Design:**
+
 - Cards com nome do paciente
 - Data de criação
 - Texto da receita (preview)
@@ -340,6 +357,7 @@ npm run dev
 ### 7. Nova Receita (`/admin/prescriptions/new`)
 
 **Funcionalidades:**
+
 - 4 templates prontos:
   1. Antibiótico + Analgésico
   2. Pós-extração
@@ -350,6 +368,7 @@ npm run dev
 - Fonte monospace (code)
 
 **Fluxo:**
+
 1. Usuário escolhe template (ou escreve do zero)
 2. Edita conforme necessário
 3. Salva OU copia
@@ -359,11 +378,13 @@ npm run dev
 ### 8. Estatísticas (`/admin/stats`)
 
 **Gráficos:**
+
 - Gráfico de pizza (distribuição por status)
 - Barras de progresso (serviços mais solicitados)
 - Gráfico de barras (horários populares)
 
 **Métricas:**
+
 - Total de agendamentos
 - Agendamentos este mês
 - Total de conversas
@@ -382,6 +403,7 @@ npm run dev
 ```
 
 **Características:**
+
 - Fixo no rodapé
 - Ícone ativo = azul
 - Ícone inativo = cinza
@@ -395,11 +417,11 @@ Arquivo: `components/Layout.tsx`
 
 ```typescript
 const navigation = [
-  { name: 'Início', href: '/admin', icon: HomeIcon },
-  { name: 'Agenda', href: '/admin/appointments', icon: CalendarIcon },
-  { name: 'Receitas', href: '/admin/prescriptions', icon: DocumentTextIcon },
-  { name: 'Stats', href: '/admin/stats', icon: ChartBarIcon },
-]
+  { name: "Início", href: "/admin", icon: HomeIcon },
+  { name: "Agenda", href: "/admin/appointments", icon: CalendarIcon },
+  { name: "Receitas", href: "/admin/prescriptions", icon: DocumentTextIcon },
+  { name: "Stats", href: "/admin/stats", icon: ChartBarIcon },
+];
 ```
 
 ---
@@ -417,7 +439,7 @@ Desktop: > 1024px
 ### Grid Responsivo
 
 ```tsx
-className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+className = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
 ```
 
 - Mobile: 2 colunas
@@ -497,9 +519,7 @@ shadow-lg: Forte (dropdowns)
 <Card>
   <div className="text-center py-12">
     <Icon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-    <p className="text-gray-600 font-medium mb-2">
-      Nenhum item encontrado
-    </p>
+    <p className="text-gray-600 font-medium mb-2">Nenhum item encontrado</p>
     <Button>Criar Novo</Button>
   </div>
 </Card>
@@ -533,6 +553,7 @@ shadow-lg: Forte (dropdowns)
 **Causa:** Token incorreto
 
 **Solução:**
+
 1. Verifique o `ADMIN_TOKEN` no `.env`
 2. Digite exatamente igual (sem espaços)
 3. Reinicie o servidor
@@ -544,6 +565,7 @@ shadow-lg: Forte (dropdowns)
 **Causa:** Não está em rota `/admin/*`
 
 **Solução:**
+
 - Bottom nav só aparece em rotas do admin
 - Login não tem bottom nav (proposital)
 
@@ -554,6 +576,7 @@ shadow-lg: Forte (dropdowns)
 **Causa:** Recharts não instalado
 
 **Solução:**
+
 ```bash
 npm install recharts
 ```
@@ -565,6 +588,7 @@ npm install recharts
 **Causa:** CSS não carregou
 
 **Solução:**
+
 1. Reinicie o servidor
 2. Limpe cache: Ctrl+Shift+R
 3. Verifique `globals.css` importado

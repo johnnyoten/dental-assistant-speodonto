@@ -1,4 +1,4 @@
-# 🦷 Dental Assistant
+# 🦷 Clínica Speodonto
 
 Sistema completo de agendamento inteligente para consultórios odontológicos com WhatsApp + IA.
 
@@ -15,14 +15,14 @@ Sistema completo de agendamento inteligente para consultórios odontológicos co
 
 ## 🚀 Stack Tecnológica
 
-| Camada | Tecnologia | Custo |
-|--------|-----------|-------|
-| **Frontend** | Next.js 14 + Tailwind | Grátis |
-| **Backend** | Next.js API Routes | Grátis |
-| **Banco de Dados** | PostgreSQL (Neon.tech) | Grátis |
-| **IA** | Google Gemini | Grátis |
-| **WhatsApp** | Meta Cloud API | Grátis* |
-| **Deploy** | Vercel | Grátis |
+| Camada             | Tecnologia             | Custo    |
+| ------------------ | ---------------------- | -------- |
+| **Frontend**       | Next.js 14 + Tailwind  | Grátis   |
+| **Backend**        | Next.js API Routes     | Grátis   |
+| **Banco de Dados** | PostgreSQL (Neon.tech) | Grátis   |
+| **IA**             | Google Gemini          | Grátis   |
+| **WhatsApp**       | Meta Cloud API         | Grátis\* |
+| **Deploy**         | Vercel                 | Grátis   |
 
 \* 1000 conversas/mês grátis. Respostas ilimitadas!
 
@@ -35,12 +35,14 @@ Sistema completo de agendamento inteligente para consultórios odontológicos co
 Siga os tutoriais na ordem:
 
 1. **[Backend - PostgreSQL + Gemini](tutorials/1-backend.md)** (~15 min)
+
    - Configurar banco de dados
    - Configurar IA Gemini (grátis)
    - Deploy na Vercel
    - Testar APIs
 
 2. **[Frontend - Painel Mobile](tutorials/2-frontend.md)** (~10 min)
+
    - Entender estrutura
    - Testar no celular
    - Personalizar (opcional)
@@ -128,6 +130,7 @@ IA: ✅ Agendamento confirmado!
 ## 📱 Design Mobile-First
 
 Interface projetada para celular com:
+
 - ✅ Bottom navigation (4 seções)
 - ✅ Botões grandes e touch-friendly
 - ✅ Cards visuais
@@ -165,23 +168,23 @@ Veja [.env.example](.env.example) para mais detalhes.
 
 O sistema suporta 3 opções de IA:
 
-| IA | Grátis? | Como Usar |
-|----|---------|-----------|
-| **Google Gemini** | ✅ Sim | Já configurado! |
-| **Groq (Llama)** | ✅ Sim | Veja [1-backend.md](tutorials/1-backend.md) |
-| **OpenAI** | ❌ Pago | Troque o import |
+| IA                | Grátis? | Como Usar                                   |
+| ----------------- | ------- | ------------------------------------------- |
+| **Google Gemini** | ✅ Sim  | Já configurado!                             |
+| **Groq (Llama)**  | ✅ Sim  | Veja [1-backend.md](tutorials/1-backend.md) |
+| **OpenAI**        | ❌ Pago | Troque o import                             |
 
 Para trocar, edite `app/api/whatsapp/webhook/route.ts`:
 
 ```typescript
 // Gemini (grátis)
-import { geminiAIService as aiService } from '@/lib/ai-service-gemini'
+import { geminiAIService as aiService } from "@/lib/ai-service-gemini";
 
 // Groq (grátis)
-import { groqAIService as aiService } from '@/lib/ai-service-groq'
+import { groqAIService as aiService } from "@/lib/ai-service-groq";
 
 // OpenAI (pago)
-import { aiService } from '@/lib/ai-service'
+import { aiService } from "@/lib/ai-service";
 ```
 
 ---
@@ -229,11 +232,13 @@ vercel --prod
 ## 📊 API Endpoints
 
 Todos os endpoints exigem autenticação:
+
 ```
 Authorization: Bearer SEU_ADMIN_TOKEN
 ```
 
 ### Agendamentos
+
 ```
 GET    /api/appointments           Lista
 POST   /api/appointments           Cria
@@ -243,17 +248,20 @@ DELETE /api/appointments/[id]      Remove
 ```
 
 ### Receitas
+
 ```
 GET    /api/prescriptions          Lista
 POST   /api/prescriptions          Cria
 ```
 
 ### Dashboard
+
 ```
 GET    /api/dashboard/stats        Estatísticas
 ```
 
 ### WhatsApp
+
 ```
 GET    /api/whatsapp/webhook       Verifica (Meta)
 POST   /api/whatsapp/webhook       Recebe mensagens
@@ -264,15 +272,19 @@ POST   /api/whatsapp/webhook       Recebe mensagens
 ## 🐛 Problemas Comuns
 
 ### Webhook não verifica?
+
 → `WHATSAPP_VERIFY_TOKEN` deve ser igual no Meta e no `.env`
 
 ### IA não responde?
+
 → Verifique `GEMINI_API_KEY` em https://makersuite.google.com/
 
 ### Banco não conecta?
+
 → Copie a connection string correta do Neon.tech
 
 ### Mais problemas?
+
 → Veja os tutoriais em [tutorials/](tutorials/)
 
 ---
@@ -309,7 +321,7 @@ colors: {
 Edite `lib/ai-service-gemini.ts`:
 
 ```typescript
-const basePrompt = `Você é um assistente virtual...`
+const basePrompt = `Você é um assistente virtual...`;
 ```
 
 ### Horários Disponíveis

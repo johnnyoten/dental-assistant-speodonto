@@ -1,4 +1,4 @@
-# 🔧 Tutorial Backend - Dental Assistant
+# 🔧 Tutorial Backend - Clínica Speodonto
 
 ## Stack do Backend
 

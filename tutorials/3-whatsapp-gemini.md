@@ -1,4 +1,4 @@
-# 📱 Tutorial WhatsApp + Gemini - Dental Assistant
+# 📱 Tutorial WhatsApp + Gemini - Clínica Speodonto
 
 ## O que vamos fazer
 
@@ -44,7 +44,7 @@ Conectar o WhatsApp Business com a IA Gemini para:
 ### 1.4 Preencher Dados
 
 ```
-Nome do App: Dental Assistant
+Nome do App: Clínica Speodonto
 (ou o nome do seu consultório)
 
 Email: seu@email.com
@@ -356,7 +356,7 @@ O token temporário expira em 24h. Para produção, gere um permanente:
 
 1. Clique no System User criado ("WhatsApp Bot")
 2. Clique em **"Generate New Token"**
-3. Selecione seu app: **"Dental Assistant"**
+3. Selecione seu app: **"Clínica Speodonto"**
 4. Marque permissões:
    - ☑️ `whatsapp_business_messaging`
    - ☑️ `whatsapp_business_management`
