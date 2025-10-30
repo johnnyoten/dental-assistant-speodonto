@@ -6,6 +6,67 @@ import { groqAIService } from '@/lib/ai-service-groq'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// Função para buscar horários ocupados nos próximos 30 dias
+async function getOccupiedSlots(): Promise<string> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const thirtyDaysFromNow = new Date(today)
+  thirtyDaysFromNow.setDate(today.getDate() + 30)
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      date: {
+        gte: today,
+        lte: thirtyDaysFromNow
+      },
+      status: {
+        not: 'CANCELLED'
+      }
+    },
+    select: {
+      date: true,
+      time: true,
+      customerName: true,
+      service: true
+    },
+    orderBy: [
+      { date: 'asc' },
+      { time: 'asc' }
+    ]
+  })
+
+  if (appointments.length === 0) {
+    return 'Não há horários ocupados nos próximos 30 dias. Todos os horários estão disponíveis.'
+  }
+
+  // Agrupar por data
+  const appointmentsByDate = appointments.reduce((acc, apt) => {
+    const dateStr = apt.date.toISOString().split('T')[0]
+    if (!acc[dateStr]) {
+      acc[dateStr] = []
+    }
+    acc[dateStr].push(apt.time)
+    return acc
+  }, {} as Record<string, string[]>)
+
+  let result = 'HORÁRIOS JÁ OCUPADOS (NÃO DISPONÍVEIS):\n\n'
+
+  for (const [date, times] of Object.entries(appointmentsByDate)) {
+    const dateObj = new Date(date + 'T12:00:00Z')
+    const dayOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'][dateObj.getUTCDay()]
+    const formattedDate = dateObj.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+
+    result += `📅 ${dayOfWeek}, ${formattedDate}:\n`
+    result += `   Ocupados: ${times.sort().join(', ')}\n\n`
+  }
+
+  result += '\n⚠️ IMPORTANTE: NÃO confirme agendamentos para estes horários!\n'
+  result += 'Se o paciente pedir um horário ocupado, informe que já está ocupado e sugira outro horário disponível.'
+
+  return result
+}
+
 // Tipos Z-API (estrutura real da Z-API)
 interface ZApiWebhook {
   instanceId: string
@@ -144,9 +205,13 @@ export async function POST(request: NextRequest) {
     // Obter contexto da conversa
     const context = (conversation.context as any) || {}
 
+    // Buscar horários ocupados
+    const occupiedSlots = await getOccupiedSlots()
+    console.log('📅 Horários ocupados carregados')
+
     // Processar com IA Groq
     console.log('🤖 Processando com Groq...')
-    const aiResponse = await groqAIService.chat(messageHistory, context)
+    const aiResponse = await groqAIService.chat(messageHistory, context, occupiedSlots)
 
     console.log('🤖 Resposta Groq:', aiResponse)
 
@@ -201,6 +266,15 @@ export async function POST(request: NextRequest) {
           const conflictMessage =
             `Desculpe, mas já existe um agendamento para ${appointmentDate.toLocaleDateString('pt-BR')} às ${appointmentTime}.\n\n` +
             `Por gentileza, escolha outro horário disponível.`
+
+          // Salvar mensagem de conflito no histórico
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: 'assistant',
+              content: conflictMessage
+            }
+          })
 
           await zapiService.sendText({
             phone: phoneNumber,
