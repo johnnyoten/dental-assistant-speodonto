@@ -1,104 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { zapiService } from '@/lib/zapi-service'
-import { groqAIService } from '@/lib/ai-service-groq'
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { zapiService } from "@/lib/zapi-service";
+import { groqAIService } from "@/lib/ai-service-groq";
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Função para buscar horários ocupados nos próximos 30 dias
 async function getOccupiedSlots(): Promise<string> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const thirtyDaysFromNow = new Date(today)
-  thirtyDaysFromNow.setDate(today.getDate() + 30)
+  const thirtyDaysFromNow = new Date(today);
+  thirtyDaysFromNow.setDate(today.getDate() + 30);
 
   const appointments = await prisma.appointment.findMany({
     where: {
       date: {
         gte: today,
-        lte: thirtyDaysFromNow
+        lte: thirtyDaysFromNow,
       },
       status: {
-        not: 'CANCELLED'
-      }
+        not: "CANCELLED",
+      },
     },
     select: {
       date: true,
       time: true,
       customerName: true,
-      service: true
+      service: true,
     },
-    orderBy: [
-      { date: 'asc' },
-      { time: 'asc' }
-    ]
-  })
+    orderBy: [{ date: "asc" }, { time: "asc" }],
+  });
 
   if (appointments.length === 0) {
-    return 'Não há horários ocupados nos próximos 30 dias. Todos os horários estão disponíveis.'
+    return "Não há horários ocupados nos próximos 30 dias. Todos os horários estão disponíveis.";
   }
 
   // Agrupar por data
   const appointmentsByDate = appointments.reduce((acc, apt) => {
-    const dateStr = apt.date.toISOString().split('T')[0]
+    const dateStr = apt.date.toISOString().split("T")[0];
     if (!acc[dateStr]) {
-      acc[dateStr] = []
+      acc[dateStr] = [];
     }
-    acc[dateStr].push(apt.time)
-    return acc
-  }, {} as Record<string, string[]>)
+    acc[dateStr].push(apt.time);
+    return acc;
+  }, {} as Record<string, string[]>);
 
-  let result = 'HORÁRIOS JÁ OCUPADOS (NÃO DISPONÍVEIS):\n\n'
+  let result = "HORÁRIOS JÁ OCUPADOS (NÃO DISPONÍVEIS):\n\n";
 
   for (const [date, times] of Object.entries(appointmentsByDate)) {
-    const dateObj = new Date(date + 'T12:00:00Z')
-    const dayOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'][dateObj.getUTCDay()]
-    const formattedDate = dateObj.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+    const dateObj = new Date(date + "T12:00:00Z");
+    const dayOfWeek = [
+      "Domingo",
+      "Segunda-feira",
+      "Terça-feira",
+      "Quarta-feira",
+      "Quinta-feira",
+      "Sexta-feira",
+      "Sábado",
+    ][dateObj.getUTCDay()];
+    const formattedDate = dateObj.toLocaleDateString("pt-BR", {
+      timeZone: "UTC",
+    });
 
-    result += `📅 ${dayOfWeek}, ${formattedDate}:\n`
-    result += `   Ocupados: ${times.sort().join(', ')}\n\n`
+    result += `📅 ${dayOfWeek}, ${formattedDate}:\n`;
+    result += `   Ocupados: ${times.sort().join(", ")}\n\n`;
   }
 
-  result += '\n⚠️ IMPORTANTE: NÃO confirme agendamentos para estes horários!\n'
-  result += 'Se o paciente pedir um horário ocupado, informe que já está ocupado e sugira outro horário disponível.'
+  result += "\n⚠️ IMPORTANTE: NÃO confirme agendamentos para estes horários!\n";
+  result +=
+    "Se o paciente pedir um horário ocupado, informe que já está ocupado e sugira outro horário disponível.";
 
-  return result
+  return result;
 }
 
 // Tipos Z-API (estrutura real da Z-API)
 interface ZApiWebhook {
-  instanceId: string
-  phone: string
-  fromMe: boolean
-  momment: number
-  status: string
-  chatName: string
-  senderPhoto: string | null
-  senderName: string
-  participantPhone?: string
-  photo: string
-  broadcast: boolean
-  type: string
+  instanceId: string;
+  phone: string;
+  fromMe: boolean;
+  momment: number;
+  status: string;
+  chatName: string;
+  senderPhoto: string | null;
+  senderName: string;
+  participantPhone?: string;
+  photo: string;
+  broadcast: boolean;
+  type: string;
   text?: {
-    message: string
-  }
+    message: string;
+  };
   image?: {
-    caption?: string
-    imageUrl: string
-  }
-  messageId: string
-  connectedPhone: string
-  waitingMessage: boolean
-  isStatusReply?: boolean
-  chatLid?: string
-  isEdit?: boolean
-  isGroup?: boolean
-  isNewsletter?: boolean
-  participantLid?: string | null
-  forwarded?: boolean
-  fromApi?: boolean
+    caption?: string;
+    imageUrl: string;
+  };
+  messageId: string;
+  connectedPhone: string;
+  waitingMessage: boolean;
+  isStatusReply?: boolean;
+  chatLid?: string;
+  isEdit?: boolean;
+  isGroup?: boolean;
+  isNewsletter?: boolean;
+  participantLid?: string | null;
+  forwarded?: boolean;
+  fromApi?: boolean;
 }
 
 /**
@@ -106,126 +114,144 @@ interface ZApiWebhook {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body: ZApiWebhook = await request.json()
+    const body: ZApiWebhook = await request.json();
 
-    console.log('📱 Webhook Z-API recebido:', JSON.stringify(body, null, 2))
+    console.log("📱 Webhook Z-API recebido:", JSON.stringify(body, null, 2));
 
     // Validar client token (segurança)
-    const clientToken = request.headers.get('client-token')
+    const clientToken = request.headers.get("client-token");
     if (clientToken && !zapiService.validateWebhook(clientToken)) {
-      console.error('❌ Client token inválido')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.error("❌ Client token inválido");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Ignorar mensagens enviadas por nós
     if (body.fromMe) {
-      console.log('⏭️ Mensagem enviada por nós, ignorando')
-      return NextResponse.json({ status: 'ignored', reason: 'fromMe' })
+      console.log("⏭️ Mensagem enviada por nós, ignorando");
+      return NextResponse.json({ status: "ignored", reason: "fromMe" });
     }
 
     // Ignorar se não for mensagem recebida (type: ReceivedCallback)
-    if (body.type !== 'ReceivedCallback') {
-      console.log('⏭️ Tipo ignorado:', body.type)
-      return NextResponse.json({ status: 'ignored', reason: 'not_received_callback' })
+    if (body.type !== "ReceivedCallback") {
+      console.log("⏭️ Tipo ignorado:", body.type);
+      return NextResponse.json({
+        status: "ignored",
+        reason: "not_received_callback",
+      });
     }
 
     // Ignorar mensagens que ainda estão sendo carregadas (waitingMessage)
     if (body.waitingMessage) {
-      console.log('⏭️ Mensagem ainda carregando (waitingMessage: true), aguardando...')
-      return NextResponse.json({ status: 'ignored', reason: 'waiting_message' })
+      console.log(
+        "⏭️ Mensagem ainda carregando (waitingMessage: true), aguardando..."
+      );
+      return NextResponse.json({
+        status: "ignored",
+        reason: "waiting_message",
+      });
     }
 
-    const messageData = body
+    const messageData = body;
 
     // Log completo para debug
-    console.log('🔍 Tipos de conteúdo disponíveis:', {
+    console.log("🔍 Tipos de conteúdo disponíveis:", {
       hasText: !!messageData.text,
       hasImage: !!messageData.image,
       hasAudio: !!(messageData as any).audio,
       hasVideo: !!(messageData as any).video,
       hasDocument: !!(messageData as any).document,
-      allKeys: Object.keys(messageData)
-    })
+      allKeys: Object.keys(messageData),
+    });
 
     // Extrair texto da mensagem
-    let messageText = ''
+    let messageText = "";
     if (messageData.text?.message) {
-      messageText = messageData.text.message
+      messageText = messageData.text.message;
     } else if (messageData.image?.caption) {
-      messageText = messageData.image.caption
+      messageText = messageData.image.caption;
     } else {
-      console.log('⏭️ Mensagem sem texto, ignorando. Body completo:', JSON.stringify(body, null, 2))
-      return NextResponse.json({ status: 'ignored', reason: 'no_text' })
+      console.log(
+        "⏭️ Mensagem sem texto, ignorando. Body completo:",
+        JSON.stringify(body, null, 2)
+      );
+      return NextResponse.json({ status: "ignored", reason: "no_text" });
     }
 
-    const phoneNumber = messageData.phone
-    const senderName = messageData.senderName || messageData.chatName || 'Cliente'
+    const phoneNumber = messageData.phone;
+    const senderName =
+      messageData.senderName || messageData.chatName || "Cliente";
 
-    console.log(`💬 Mensagem de ${senderName} (${phoneNumber}): ${messageText}`)
+    console.log(
+      `💬 Mensagem de ${senderName} (${phoneNumber}): ${messageText}`
+    );
 
     // Buscar ou criar conversa
     let conversation = await prisma.conversation.findFirst({
       where: { phoneNumber },
-      include: { messages: true }
-    })
+      include: { messages: true },
+    });
 
     if (!conversation) {
       conversation = await prisma.conversation.create({
         data: {
           phoneNumber,
           context: { name: senderName },
-          status: 'ACTIVE'
+          status: "ACTIVE",
         },
-        include: { messages: true }
-      })
-      console.log('✅ Nova conversa criada:', conversation.id)
+        include: { messages: true },
+      });
+      console.log("✅ Nova conversa criada:", conversation.id);
     }
 
     // Salvar mensagem do usuário
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
-        role: 'USER',
-        content: messageText
-      }
-    })
+        role: "USER",
+        content: messageText,
+      },
+    });
 
     // Preparar histórico de mensagens para a IA
     const messageHistory = conversation.messages.map((m) => ({
-      role: m.role.toLowerCase() as 'user' | 'assistant' | 'system',
-      content: m.content
-    }))
+      role: m.role.toLowerCase() as "user" | "assistant" | "system",
+      content: m.content,
+    }));
 
     // Adicionar nova mensagem do usuário
     messageHistory.push({
-      role: 'user',
-      content: messageText
-    })
+      role: "user",
+      content: messageText,
+    });
 
     // Obter contexto da conversa
-    const context = (conversation.context as any) || {}
+    const context = (conversation.context as any) || {};
 
     // Buscar horários ocupados
-    const occupiedSlots = await getOccupiedSlots()
-    console.log('📅 Horários ocupados carregados')
+    const occupiedSlots = await getOccupiedSlots();
+    console.log("📅 Horários ocupados carregados");
 
     // Processar com IA Groq
-    console.log('🤖 Processando com Groq...')
-    const aiResponse = await groqAIService.chat(messageHistory, context, occupiedSlots)
+    console.log("🤖 Processando com Groq...");
+    const aiResponse = await groqAIService.chat(
+      messageHistory,
+      context,
+      occupiedSlots
+    );
 
-    console.log('🤖 Resposta Groq:', aiResponse)
+    console.log("🤖 Resposta Groq:", aiResponse);
 
     // Salvar resposta da IA
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
-        role: 'ASSISTANT',
-        content: aiResponse
-      }
-    })
+        role: "ASSISTANT",
+        content: aiResponse,
+      },
+    });
 
     // Verificar se o agendamento foi completado
-    const appointmentData = groqAIService.extractAppointmentData(aiResponse)
+    const appointmentData = groqAIService.extractAppointmentData(aiResponse);
 
     if (appointmentData.isComplete && appointmentData.data) {
       try {
@@ -234,21 +260,21 @@ export async function POST(request: NextRequest) {
           where: {
             conversationId: conversation.id,
             status: {
-              not: 'CANCELLED'
-            }
-          }
-        })
+              not: "CANCELLED",
+            },
+          },
+        });
 
         if (existingAppointment) {
-          console.log('⚠️ Esta conversa já tem um agendamento criado!')
+          console.log("⚠️ Esta conversa já tem um agendamento criado!");
           return NextResponse.json({
-            status: 'already_scheduled',
-            message: 'Agendamento já criado para esta conversa'
-          })
+            status: "already_scheduled",
+            message: "Agendamento já criado para esta conversa",
+          });
         }
 
-        const appointmentDate = new Date(appointmentData.data.date)
-        const appointmentTime = appointmentData.data.time
+        const appointmentDate = new Date(appointmentData.data.date);
+        const appointmentTime = appointmentData.data.time;
 
         // Verificar se já existe agendamento para este horário (outro paciente)
         const conflictingAppointment = await prisma.appointment.findFirst({
@@ -256,35 +282,37 @@ export async function POST(request: NextRequest) {
             date: appointmentDate,
             time: appointmentTime,
             status: {
-              not: 'CANCELLED'
-            }
-          }
-        })
+              not: "CANCELLED",
+            },
+          },
+        });
 
         if (conflictingAppointment) {
-          console.log('⚠️ Conflito de horário detectado!')
+          console.log("⚠️ Conflito de horário detectado!");
           const conflictMessage =
-            `Desculpe, mas já existe um agendamento para ${appointmentDate.toLocaleDateString('pt-BR')} às ${appointmentTime}.\n\n` +
-            `Por gentileza, escolha outro horário disponível.`
+            `Desculpe, mas já existe um agendamento para ${appointmentDate.toLocaleDateString(
+              "pt-BR"
+            )} às ${appointmentTime}.\n\n` +
+            `Por gentileza, escolha outro horário disponível.`;
 
           // Salvar mensagem de conflito no histórico
           await prisma.message.create({
             data: {
               conversationId: conversation.id,
-              role: 'assistant',
-              content: conflictMessage
-            }
-          })
+              role: "ASSISTANT",
+              content: conflictMessage,
+            },
+          });
 
           await zapiService.sendText({
             phone: phoneNumber,
-            message: conflictMessage
-          })
+            message: conflictMessage,
+          });
 
           return NextResponse.json({
-            status: 'conflict',
-            message: 'Horário já ocupado'
-          })
+            status: "conflict",
+            message: "Horário já ocupado",
+          });
         }
 
         // Criar agendamento
@@ -296,18 +324,18 @@ export async function POST(request: NextRequest) {
             date: appointmentDate,
             time: appointmentTime,
             duration: 60, // Duração padrão: 1 hora
-            status: 'CONFIRMED',
-            conversationId: conversation.id
-          }
-        })
+            status: "CONFIRMED",
+            conversationId: conversation.id,
+          },
+        });
 
-        console.log('📅 Agendamento criado:', appointment.id)
+        console.log("📅 Agendamento criado:", appointment.id);
 
         // Fecha conversa
         await prisma.conversation.update({
           where: { id: conversation.id },
-          data: { status: 'CLOSED' }
-        })
+          data: { status: "CLOSED" },
+        });
 
         // Envia mensagem de confirmação limpa
         const confirmationMessage =
@@ -315,49 +343,57 @@ export async function POST(request: NextRequest) {
           `📋 Resumo:\n` +
           `Nome: ${appointmentData.data.customerName}\n` +
           `Serviço: ${appointmentData.data.service}\n` +
-          `Data: ${new Date(appointmentData.data.date).toLocaleDateString('pt-BR')}\n` +
+          `Data: ${new Date(appointmentData.data.date).toLocaleDateString(
+            "pt-BR"
+          )}\n` +
           `Horário: ${appointmentData.data.time}\n\n` +
-          `Nos vemos em breve! 😊`
+          `Nos vemos em breve! 😊`;
 
         const zapiConfirmation = await zapiService.sendText({
           phone: phoneNumber,
-          message: confirmationMessage
-        })
-        console.log('📨 Resposta confirmação Z-API:', JSON.stringify(zapiConfirmation, null, 2))
+          message: confirmationMessage,
+        });
+        console.log(
+          "📨 Resposta confirmação Z-API:",
+          JSON.stringify(zapiConfirmation, null, 2)
+        );
       } catch (error) {
-        console.error('❌ Erro ao criar agendamento:', error)
+        console.error("❌ Erro ao criar agendamento:", error);
         // Se erro, envia resposta normal da IA
         await zapiService.sendText({
           phone: phoneNumber,
-          message: aiResponse
-        })
+          message: aiResponse,
+        });
       }
     } else {
       // Enviar resposta da IA via Z-API
-      console.log('📤 Enviando resposta via Z-API...')
+      console.log("📤 Enviando resposta via Z-API...");
       const zapiResponse = await zapiService.sendText({
         phone: phoneNumber,
-        message: aiResponse
-      })
-      console.log('📨 Resposta do Z-API:', JSON.stringify(zapiResponse, null, 2))
+        message: aiResponse,
+      });
+      console.log(
+        "📨 Resposta do Z-API:",
+        JSON.stringify(zapiResponse, null, 2)
+      );
     }
 
-    console.log('✅ Resposta enviada com sucesso!')
+    console.log("✅ Resposta enviada com sucesso!");
 
     return NextResponse.json({
-      status: 'success',
-      message: 'Mensagem processada',
-      conversationId: conversation.id
-    })
+      status: "success",
+      message: "Mensagem processada",
+      conversationId: conversation.id,
+    });
   } catch (error) {
-    console.error('❌ Erro ao processar webhook Z-API:', error)
+    console.error("❌ Erro ao processar webhook Z-API:", error);
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -366,15 +402,15 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const status = await zapiService.getStatus()
+    const status = await zapiService.getStatus();
     return NextResponse.json({
-      status: 'webhook_active',
-      zapiStatus: status
-    })
+      status: "webhook_active",
+      zapiStatus: status,
+    });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Z-API service unavailable' },
+      { error: "Z-API service unavailable" },
       { status: 503 }
-    )
+    );
   }
 }
