@@ -15,9 +15,52 @@ interface ConversationContext {
 export class GeminiAIService {
   private apiKey: string
   private apiUrl: string = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent'
+  private lastRequestTime: number = 0
+  private minRequestInterval: number = 1000 // 1 segundo entre requisições
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || ''
+  }
+
+  private async waitForRateLimit(): Promise<void> {
+    const now = Date.now()
+    const timeSinceLastRequest = now - this.lastRequestTime
+
+    if (timeSinceLastRequest < this.minRequestInterval) {
+      const waitTime = this.minRequestInterval - timeSinceLastRequest
+      console.log(`⏳ Rate limiting: aguardando ${waitTime}ms`)
+      await new Promise(resolve => setTimeout(resolve, waitTime))
+    }
+
+    this.lastRequestTime = Date.now()
+  }
+
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3
+  ): Promise<T> {
+    let lastError: any
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn()
+      } catch (error: any) {
+        lastError = error
+
+        // Se for erro 429 (rate limit), aguarda e tenta novamente
+        if (error.response?.status === 429) {
+          const waitTime = Math.pow(2, attempt) * 2000 // 2s, 4s, 8s
+          console.log(`⚠️ Rate limit atingido. Tentativa ${attempt + 1}/${maxRetries}. Aguardando ${waitTime}ms...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+          continue
+        }
+
+        // Para outros erros, não tenta novamente
+        throw error
+      }
+    }
+
+    throw lastError
   }
 
   async chat(messages: Message[], context?: ConversationContext): Promise<string> {
@@ -39,25 +82,56 @@ export class GeminiAIService {
     const fullPrompt = `${systemPrompt}\n\n${conversationHistory}\n\nAssistente:`
 
     try {
-      const response = await axios.post(
-        `${this.apiUrl}?key=${this.apiKey}`,
-        {
-          contents: [{
-            parts: [{
-              text: fullPrompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 500,
+      // Aguarda rate limit antes de fazer a requisição
+      await this.waitForRateLimit()
+
+      // Tenta fazer a requisição com retry em caso de erro 429
+      const response = await this.retryWithBackoff(async () => {
+        return await axios.post(
+          `${this.apiUrl}?key=${this.apiKey}`,
+          {
+            contents: [{
+              parts: [{
+                text: fullPrompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 500,
+            }
           }
-        }
-      )
+        )
+      })
 
       const aiResponse = response.data.candidates[0].content.parts[0].text
       return aiResponse.trim()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao chamar API do Gemini:', error)
+
+      // Log detalhado do erro para debug
+      if (error.response) {
+        console.error('Status:', error.response.status)
+        console.error('Headers:', error.response.headers)
+        console.error('Data:', JSON.stringify(error.response.data, null, 2))
+      }
+
+      // Se for erro 429 após todas as tentativas, retorna mensagem amigável
+      if (error.response?.status === 429) {
+        const errorData = error.response.data
+
+        // Tenta identificar qual limite foi atingido
+        let errorMessage = 'Boa noite! '
+
+        if (errorData?.error?.message?.includes('quota') || errorData?.error?.message?.includes('limit')) {
+          console.error('❌ Limite da API Gemini atingido:', errorData.error.message)
+          errorMessage += 'Atingimos o limite diário de solicitações da nossa IA. Por gentileza, tente novamente amanhã ou entre em contato pelo telefone. Pedimos desculpas pelo inconveniente!'
+        } else {
+          errorMessage += 'Estou com muitas solicitações no momento. Por gentileza, aguarde alguns instantes e envie sua mensagem novamente. Obrigado pela compreensão!'
+        }
+
+        return errorMessage
+      }
+
       throw new Error('Falha ao processar mensagem com IA')
     }
   }
