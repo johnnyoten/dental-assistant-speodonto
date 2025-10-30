@@ -164,14 +164,64 @@ export async function POST(request: NextRequest) {
 
     if (appointmentData.isComplete && appointmentData.data) {
       try {
+        // Verificar se esta conversa já criou um agendamento
+        const existingAppointment = await prisma.appointment.findFirst({
+          where: {
+            conversationId: conversation.id,
+            status: {
+              not: 'CANCELLED'
+            }
+          }
+        })
+
+        if (existingAppointment) {
+          console.log('⚠️ Esta conversa já tem um agendamento criado!')
+          return NextResponse.json({
+            status: 'already_scheduled',
+            message: 'Agendamento já criado para esta conversa'
+          })
+        }
+
+        const appointmentDate = new Date(appointmentData.data.date)
+        const appointmentTime = appointmentData.data.time
+
+        // Verificar se já existe agendamento para este horário (outro paciente)
+        const conflictingAppointment = await prisma.appointment.findFirst({
+          where: {
+            date: appointmentDate,
+            time: appointmentTime,
+            status: {
+              not: 'CANCELLED'
+            }
+          }
+        })
+
+        if (conflictingAppointment) {
+          console.log('⚠️ Conflito de horário detectado!')
+          const conflictMessage =
+            `Desculpe, mas já existe um agendamento para ${appointmentDate.toLocaleDateString('pt-BR')} às ${appointmentTime}.\n\n` +
+            `Por gentileza, escolha outro horário disponível.`
+
+          await zapiService.sendText({
+            phone: phoneNumber,
+            message: conflictMessage
+          })
+
+          return NextResponse.json({
+            status: 'conflict',
+            message: 'Horário já ocupado'
+          })
+        }
+
+        // Criar agendamento
         const appointment = await prisma.appointment.create({
           data: {
             customerName: appointmentData.data.customerName,
             customerPhone: phoneNumber,
             service: appointmentData.data.service,
-            date: new Date(appointmentData.data.date),
-            time: appointmentData.data.time,
-            duration: 30, // Duração padrão
+            date: appointmentDate,
+            time: appointmentTime,
+            duration: 60, // Duração padrão: 1 hora
             status: 'CONFIRMED',
             conversationId: conversation.id
           }
