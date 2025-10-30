@@ -7,14 +7,14 @@ import {
   HomeIcon,
   CalendarIcon,
   CalendarDaysIcon,
-  DocumentTextIcon,
+  ChatBubbleLeftRightIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import {
   HomeIcon as HomeIconSolid,
   CalendarIcon as CalendarIconSolid,
   CalendarDaysIcon as CalendarDaysIconSolid,
-  DocumentTextIcon as DocumentTextIconSolid,
+  ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
   ChartBarIcon as ChartBarIconSolid,
 } from "@heroicons/react/24/solid";
 
@@ -35,6 +35,12 @@ const navigation = [
     href: "/admin/appointments",
     icon: CalendarIcon,
     iconSolid: CalendarIconSolid,
+  },
+  {
+    name: "Conversas",
+    href: "/admin/conversations",
+    icon: ChatBubbleLeftRightIcon,
+    iconSolid: ChatBubbleLeftRightIconSolid,
   },
   {
     name: "Stats",
@@ -64,7 +70,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Bottom Navigation - Mobile First */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             const Icon = isActive ? item.iconSolid : item.icon;
