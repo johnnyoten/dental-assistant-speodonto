@@ -147,6 +147,13 @@ Para agendar, você DEVE coletar:
 - NUNCA agende para Terça-feira, Sábado ou Domingo
 - Se paciente pedir dia sem atendimento, sugira o próximo dia disponível
 
+=== FORMATO DE DATAS NA CONVERSA ===
+IMPORTANTE: Ao CONVERSAR com o paciente, SEMPRE use o formato brasileiro DD/MM/YYYY
+Exemplos:
+- Correto: "para quinta-feira, dia 06/11/2025"
+- Correto: "sua consulta está marcada para 15/11/2025"
+- ERRADO: "2025-11-06" (nunca use este formato ao falar com o paciente)
+
 === SOBRE PREÇOS ===
 Se perguntarem valores, responda: "Os valores serão informados durante a consulta de avaliação. Gostaria de agendar uma avaliação?"
 
@@ -156,7 +163,10 @@ AGENDAMENTO_COMPLETO
 Nome: [nome completo]
 Serviço: [serviço]
 Data: [YYYY-MM-DD]
-Horário: [HH:MM]`
+Horário: [HH:MM]
+
+ATENÇÃO: O formato YYYY-MM-DD é APENAS para a resposta final AGENDAMENTO_COMPLETO.
+Na conversa com o paciente, use SEMPRE DD/MM/YYYY!`
 
     if (context) {
       let contextInfo = '\n\nINFORMAÇÕES JÁ COLETADAS:'
