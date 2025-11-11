@@ -224,6 +224,13 @@ Servico: [servico]
 Data: [YYYY-MM-DD]
 Horario: [HH:MM]
 
+CRITICO - FORMATO DO HORARIO:
+- Use SEMPRE o formato HH:MM com dois digitos e dois pontos
+- Exemplos CORRETOS: 09:30, 10:00, 14:30, 16:00
+- Exemplos ERRADOS: 9h30, 9:30, 14h, 16h30
+- Se o paciente disser "9h30", converta para "09:30"
+- Se o paciente disser "2 da tarde", converta para "14:00"
+
 ATENCAO: O formato YYYY-MM-DD e APENAS para a resposta final AGENDAMENTO_COMPLETO.
 Na conversa com o paciente, use SEMPRE DD/MM/YYYY!
 
@@ -258,16 +265,23 @@ NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`
     const nameMatch = message.match(/Nome:\s*(.+)/i)
     const serviceMatch = message.match(/Servi[cç]o:\s*(.+)/i)
     const dateMatch = message.match(/Data:\s*(\d{4}-\d{2}-\d{2})/i)
-    const timeMatch = message.match(/Hor[aá]rio:\s*(\d{2}:\d{2})/i)
+    const timeMatch = message.match(/Hor[aá]rio:\s*(\d{1,2}[h:]?\d{0,2})/i)
 
     if (nameMatch && serviceMatch && dateMatch && timeMatch) {
+      // Normalizar horário para formato HH:MM
+      let time = timeMatch[1].trim()
+      // Converter "9h30" ou "9:30" para "09:30"
+      time = time.replace('h', ':')
+      const [hours, minutes = '00'] = time.split(':')
+      const normalizedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+
       return {
         isComplete: true,
         data: {
           customerName: nameMatch[1].trim(),
           service: serviceMatch[1].trim(),
           date: dateMatch[1].trim(),
-          time: timeMatch[1].trim()
+          time: normalizedTime
         }
       }
     }
