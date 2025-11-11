@@ -15,7 +15,7 @@ export async function GET(
       include: {
         messages: {
           orderBy: {
-            createdAt: 'asc'
+            timestamp: 'asc'
           }
         }
       }
@@ -41,7 +41,7 @@ export async function GET(
         id: msg.id,
         role: msg.role,
         content: msg.content,
-        createdAt: msg.createdAt
+        createdAt: msg.timestamp
       })),
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt
