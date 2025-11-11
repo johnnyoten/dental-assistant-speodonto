@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       include: {
         messages: {
           orderBy: {
-            createdAt: 'desc'
+            timestamp: 'desc'
           },
           take: 1
         },
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         phoneNumber: conv.phoneNumber,
         customerName: context?.customerName || null,
         lastMessage: lastMessage?.content || 'Sem mensagens',
-        lastMessageAt: lastMessage?.createdAt || conv.createdAt,
+        lastMessageAt: lastMessage?.timestamp || conv.createdAt,
         messageCount: conv._count.messages,
         createdAt: conv.createdAt,
         updatedAt: conv.updatedAt
