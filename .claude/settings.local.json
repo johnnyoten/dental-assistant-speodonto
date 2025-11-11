@@ -13,7 +13,9 @@
       "Bash(npx prisma db push:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfix: corrigir estrutura do webhook Z-API\n\nAjustado para receber dados diretamente no body, não em body.data.\nA Z-API envia os dados com type: ReceivedCallback diretamente.\n\nMudanças:\n- Removido interface ZApiWebhookMessage aninhada\n- Dados agora vêm diretamente no body\n- Verificação de fromMe e type atualizadas\n- Suporte para todos os campos da Z-API\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []

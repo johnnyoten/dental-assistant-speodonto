@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { zapiService } from "@/lib/zapi-service";
-import { groqAIService } from "@/lib/ai-service-groq";
+import { openAIService } from "@/lib/ai-service-openai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -231,15 +231,15 @@ export async function POST(request: NextRequest) {
     const occupiedSlots = await getOccupiedSlots();
     console.log("📅 Horários ocupados carregados");
 
-    // Processar com IA Groq
-    console.log("🤖 Processando com Groq...");
-    const aiResponse = await groqAIService.chat(
+    // Processar com IA OpenAI
+    console.log("🤖 Processando com OpenAI...");
+    const aiResponse = await openAIService.chat(
       messageHistory,
       context,
       occupiedSlots
     );
 
-    console.log("🤖 Resposta Groq:", aiResponse);
+    console.log("🤖 Resposta OpenAI:", aiResponse);
 
     // Salvar resposta da IA
     await prisma.message.create({
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Verificar se o agendamento foi completado
-    const appointmentData = groqAIService.extractAppointmentData(aiResponse);
+    const appointmentData = openAIService.extractAppointmentData(aiResponse);
 
     if (appointmentData.isComplete && appointmentData.data) {
       try {
