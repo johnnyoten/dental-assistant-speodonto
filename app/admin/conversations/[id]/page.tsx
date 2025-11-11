@@ -77,7 +77,7 @@ export default function ConversationDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-gray-600">Conversa não encontrada</p>
+          <p className="text-gray-600">Conversa nao encontrada</p>
           <button
             onClick={() => router.push('/admin/conversations')}
             className="mt-4 text-blue-600 hover:underline"
@@ -91,7 +91,6 @@ export default function ConversationDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
@@ -111,27 +110,25 @@ export default function ConversationDetailPage() {
         </div>
       </div>
 
-      {/* Info Card */}
       {(conversation.service || conversation.date || conversation.time) && (
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">Informações do Agendamento</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Informacoes do Agendamento</h3>
             <div className="space-y-1 text-sm">
               {conversation.service && (
-                <p><span className="font-medium">Serviço:</span> {conversation.service}</p>
+                <p><span className="font-medium">Servico:</span> {conversation.service}</p>
               )}
               {conversation.date && (
                 <p><span className="font-medium">Data:</span> {conversation.date}</p>
               )}
               {conversation.time && (
-                <p><span className="font-medium">Horário:</span> {conversation.time}</p>
+                <p><span className="font-medium">Horario:</span> {conversation.time}</p>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Messages */}
       <div className="max-w-4xl mx-auto px-4 py-4">
         <div className="space-y-4">
           {conversation.messages.map((message) => {
@@ -143,7 +140,6 @@ export default function ConversationDetailPage() {
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`flex gap-2 max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {/* Avatar */}
                   <div className="flex-shrink-0">
                     {isUser ? (
                       <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -156,7 +152,6 @@ export default function ConversationDetailPage() {
                     )}
                   </div>
 
-                  {/* Message Bubble */}
                   <div>
                     <div
                       className={`rounded-lg px-4 py-2 ${
@@ -168,7 +163,7 @@ export default function ConversationDetailPage() {
                       <p className="whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
                     <p className={`text-xs text-gray-500 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
-                      {format(new Date(message.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {format(new Date(message.createdAt), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}
                     </p>
                   </div>
                 </div>
