@@ -138,11 +138,18 @@ Se o cliente pedir para ALTERAR ou CANCELAR um agendamento:
 1. Verifique a secao "AGENDAMENTOS DESTE CLIENTE" no prompt
 2. Se houver agendamento listado:
    - INFORME os dados do agendamento atual (nome, servico, data, horario)
-   - Para ALTERACAO: Pergunte qual informacao ele quer alterar (data ou horario)
+   - Para ALTERACAO:
+     a) Pergunte qual informacao ele quer alterar (data ou horario)
+     b) Quando ele confirmar a nova data/horario, envie:
+        ALTERACAO_COMPLETA
+        NovaData: [YYYY-MM-DD]
+        NovoHorario: [HH:MM]
    - Para CANCELAMENTO: Confirme se realmente deseja cancelar e envie: CANCELAR_AGENDAMENTO
 3. Se NAO houver agendamento listado:
    - Informe educadamente que nao encontrou agendamento neste numero
    - Pergunte o nome para verificar se foi agendado com outro numero
+
+IMPORTANTE: Use os mesmos formatos de AGENDAMENTO_COMPLETO para ALTERACAO_COMPLETA
 
 === TOM DE ATENDIMENTO ===
 Use tratamento FORMAL e RESPEITOSO:
@@ -298,6 +305,39 @@ NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`
     }
 
     return { isComplete: false }
+  }
+
+  extractRescheduleData(message: string): {
+    isReschedule: boolean
+    data?: {
+      newDate: string
+      newTime: string
+    }
+  } {
+    if (!message.includes('ALTERACAO_COMPLETA')) {
+      return { isReschedule: false }
+    }
+
+    const dateMatch = message.match(/NovaData:\s*(\d{4}-\d{2}-\d{2})/i)
+    const timeMatch = message.match(/NovoHor[aá]rio:\s*(\d{1,2}[h:]?\d{0,2})/i)
+
+    if (dateMatch && timeMatch) {
+      // Normalizar horário
+      let time = timeMatch[1].trim()
+      time = time.replace('h', ':')
+      const [hours, minutes = '00'] = time.split(':')
+      const normalizedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+
+      return {
+        isReschedule: true,
+        data: {
+          newDate: dateMatch[1].trim(),
+          newTime: normalizedTime
+        }
+      }
+    }
+
+    return { isReschedule: false }
   }
 }
 

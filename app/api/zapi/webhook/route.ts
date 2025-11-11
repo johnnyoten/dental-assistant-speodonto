@@ -276,6 +276,109 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Verificar se é uma alteração de agendamento
+    const rescheduleData = openAIService.extractRescheduleData(aiResponse);
+
+    if (rescheduleData.isReschedule && rescheduleData.data) {
+      try {
+        // Buscar agendamento existente do cliente
+        const existingAppointment = await prisma.appointment.findFirst({
+          where: {
+            customerPhone: phoneNumber,
+            status: {
+              not: "CANCELLED",
+            },
+          },
+          orderBy: {
+            date: "asc",
+          },
+        });
+
+        if (!existingAppointment) {
+          console.log("⚠️ Nenhum agendamento encontrado para alterar");
+          return NextResponse.json({
+            status: "no_appointment",
+            message: "Nenhum agendamento encontrado",
+          });
+        }
+
+        const newDate = new Date(rescheduleData.data.newDate);
+        const newTime = rescheduleData.data.newTime;
+
+        // Verificar se novo horário está disponível
+        const conflictingAppointment = await prisma.appointment.findFirst({
+          where: {
+            date: newDate,
+            time: newTime,
+            status: {
+              not: "CANCELLED",
+            },
+            id: {
+              not: existingAppointment.id, // Excluir o próprio agendamento
+            },
+          },
+        });
+
+        if (conflictingAppointment) {
+          const conflictMessage =
+            `Desculpe, mas o horario ${newDate.toLocaleDateString(
+              "pt-BR"
+            )} as ${newTime} ja esta ocupado.\n\n` +
+            `Por favor, escolha outro horario disponivel.`;
+
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: "ASSISTANT",
+              content: conflictMessage,
+            },
+          });
+
+          await zapiService.sendText({
+            phone: phoneNumber,
+            message: conflictMessage,
+          });
+
+          return NextResponse.json({
+            status: "conflict",
+            message: "Horario ja ocupado",
+          });
+        }
+
+        // Atualizar o agendamento
+        await prisma.appointment.update({
+          where: { id: existingAppointment.id },
+          data: {
+            date: newDate,
+            time: newTime,
+          },
+        });
+
+        console.log("✅ Agendamento alterado com sucesso!");
+
+        const confirmationMessage =
+          `✅ Alteracao confirmada!\n\n` +
+          `📋 Novo horario:\n` +
+          `Nome: ${existingAppointment.customerName}\n` +
+          `Servico: ${existingAppointment.service}\n` +
+          `Data: ${newDate.toLocaleDateString("pt-BR")}\n` +
+          `Horario: ${newTime}\n\n` +
+          `Ate breve!`;
+
+        await zapiService.sendText({
+          phone: phoneNumber,
+          message: confirmationMessage,
+        });
+
+        return NextResponse.json({
+          status: "rescheduled",
+          message: "Agendamento alterado com sucesso",
+        });
+      } catch (error) {
+        console.error("Erro ao alterar agendamento:", error);
+      }
+    }
+
     // Verificar se o agendamento foi completado
     const appointmentData = openAIService.extractAppointmentData(aiResponse);
 
