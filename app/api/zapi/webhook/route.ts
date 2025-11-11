@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { zapiService } from "@/lib/zapi-service";
 import { openAIService } from "@/lib/ai-service-openai";
+import { geminiAIService } from "@/lib/ai-service-gemini";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -227,6 +228,31 @@ export async function POST(request: NextRequest) {
     // Obter contexto da conversa
     const context = (conversation.context as any) || {};
 
+    // Buscar agendamentos existentes deste cliente
+    const customerAppointments = await prisma.appointment.findMany({
+      where: {
+        customerPhone: phoneNumber,
+        status: {
+          not: "CANCELLED",
+        },
+      },
+      orderBy: {
+        date: "asc",
+      },
+    });
+
+    // Preparar informações dos agendamentos do cliente
+    let customerAppointmentsInfo = "";
+    if (customerAppointments.length > 0) {
+      customerAppointmentsInfo = "\n\n=== AGENDAMENTOS DESTE CLIENTE ===\n";
+      customerAppointments.forEach((apt) => {
+        const dateStr = apt.date.toLocaleDateString("pt-BR");
+        customerAppointmentsInfo += `- ${apt.customerName} | ${apt.service} | ${dateStr} às ${apt.time} | Status: ${apt.status}\n`;
+      });
+      customerAppointmentsInfo +=
+        "\nSe o cliente pedir para alterar/cancelar, use essas informacoes.\n";
+    }
+
     // Buscar horários ocupados
     const occupiedSlots = await getOccupiedSlots();
     console.log("📅 Horários ocupados carregados");
@@ -236,7 +262,7 @@ export async function POST(request: NextRequest) {
     const aiResponse = await openAIService.chat(
       messageHistory,
       context,
-      occupiedSlots
+      occupiedSlots + customerAppointmentsInfo
     );
 
     console.log("🤖 Resposta OpenAI:", aiResponse);
