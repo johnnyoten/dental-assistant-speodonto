@@ -23,7 +23,7 @@ export async function GET(
 
     if (!conversation) {
       return NextResponse.json(
-        { success: false, error: 'Conversa n„o encontrada' },
+        { success: false, error: 'Conversa n√£o encontrada' },
         { status: 404 }
       )
     }
