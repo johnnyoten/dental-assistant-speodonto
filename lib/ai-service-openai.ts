@@ -256,9 +256,9 @@ NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`
     }
 
     const nameMatch = message.match(/Nome:\s*(.+)/i)
-    const serviceMatch = message.match(/Servico:\s*(.+)/i)
+    const serviceMatch = message.match(/Servi[cç]o:\s*(.+)/i)
     const dateMatch = message.match(/Data:\s*(\d{4}-\d{2}-\d{2})/i)
-    const timeMatch = message.match(/Horario:\s*(\d{2}:\d{2})/i)
+    const timeMatch = message.match(/Hor[aá]rio:\s*(\d{2}:\d{2})/i)
 
     if (nameMatch && serviceMatch && dateMatch && timeMatch) {
       return {
