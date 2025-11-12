@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { zapiService } from "@/lib/zapi-service";
 import { openAIService } from "@/lib/ai-service-openai";
-import { geminiAIService } from "@/lib/ai-service-gemini";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -181,6 +180,14 @@ export async function POST(request: NextRequest) {
     const phoneNumber = messageData.phone;
     const senderName =
       messageData.senderName || messageData.chatName || "Cliente";
+
+    // Filtrar mensagens de grupos (números com "-" ou "@g.us")
+    if (phoneNumber.includes("-") || phoneNumber.includes("@g.us")) {
+      console.log(
+        `⏭️ Mensagem de grupo ignorada: ${phoneNumber}`
+      );
+      return NextResponse.json({ status: "ignored", reason: "group_message" });
+    }
 
     console.log(
       `💬 Mensagem de ${senderName} (${phoneNumber}): ${messageText}`
