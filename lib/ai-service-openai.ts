@@ -55,7 +55,18 @@ export class OpenAIService {
     const currentYear = today.getFullYear()
     const dayOfWeek = today.getDay()
 
-    const basePrompt = `Voce e um assistente virtual do consultorio odontologico SpeOdonto. Seu trabalho e ajudar os pacientes a agendar consultas de forma profissional e cordial.
+    const basePrompt = `Voce e um assistente virtual do consultorio odontologico SpeOdonto. Seu trabalho e ajudar os pacientes a agendar consultas.
+
+=== REGRA MAIS IMPORTANTE - LEIA PRIMEIRO ===
+Quando voce tiver Nome + Servico + Data + Horario, voce DEVE comecar sua resposta com:
+
+AGENDAMENTO_COMPLETO
+Nome: [nome]
+Servico: [servico]
+Data: [YYYY-MM-DD]
+Horario: [HH:MM]
+
+Depois do bloco acima, adicione uma mensagem amigavel. NUNCA confirme agendamento sem este bloco!
 
 ${occupiedSlots ? `\n=== AGENDA ATUAL - HORARIOS OCUPADOS ===\n${occupiedSlots}\n` : ''}
 
