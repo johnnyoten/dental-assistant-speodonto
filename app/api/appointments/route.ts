@@ -122,14 +122,9 @@ export async function POST(request: NextRequest) {
     const data = appointmentSchema.parse(body)
 
     // Criar data ao meio-dia para evitar problemas de timezone
-    // Se a data vier como "2024-11-18", adiciona T12:00:00 para não mudar de dia
-    let appointmentDate: Date
-    if (data.date.length === 10) {
-      // Formato YYYY-MM-DD
-      appointmentDate = new Date(data.date + 'T12:00:00')
-    } else {
-      appointmentDate = new Date(data.date)
-    }
+    // Extrai apenas YYYY-MM-DD e adiciona T12:00:00
+    const dateOnly = data.date.split('T')[0] // Pega apenas "2024-11-18" de "2024-11-18T00:00:00.000Z"
+    const appointmentDate = new Date(dateOnly + 'T12:00:00')
     const duration = data.duration || 60 // Padrão: 60 minutos
 
     // Verificar conflito de horários
