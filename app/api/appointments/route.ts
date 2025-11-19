@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
 
     if (startDate && endDate) {
       where.date = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+        gte: new Date(startDate + 'T00:00:00'),
+        lte: new Date(endDate + 'T23:59:59')
       }
     }
 
@@ -121,8 +121,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = appointmentSchema.parse(body)
 
-    const appointmentDate = new Date(data.date)
-    const duration = data.duration || 30 // Padrão: 30 minutos
+    // Criar data ao meio-dia para evitar problemas de timezone
+    // Se a data vier como "2024-11-18", adiciona T12:00:00 para não mudar de dia
+    let appointmentDate: Date
+    if (data.date.length === 10) {
+      // Formato YYYY-MM-DD
+      appointmentDate = new Date(data.date + 'T12:00:00')
+    } else {
+      appointmentDate = new Date(data.date)
+    }
+    const duration = data.duration || 60 // Padrão: 60 minutos
 
     // Verificar conflito de horários
     const hasConflict = await checkTimeConflict(
