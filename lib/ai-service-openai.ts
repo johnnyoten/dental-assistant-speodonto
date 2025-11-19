@@ -76,10 +76,14 @@ Dias: Segunda-feira, Quarta-feira, Quinta-feira e Sexta-feira
 Horario: 9h30 as 17h00
 Intervalo de almoco: 12h00 as 13h00 (SEM atendimento)
 NAO atendemos: Terca-feira, Sabado e Domingo
+Duracao de cada consulta: 1 hora
 
-Horarios disponiveis para agendamento:
-- 9h30, 10h00, 10h30, 11h00, 11h30
-- 13h00, 13h30, 14h00, 14h30, 15h00, 15h30, 16h00, 16h30
+HORARIOS FIXOS DISPONIVEIS (somente estes):
+Manha: 09:30, 10:30, 11:30
+Tarde: 13:00, 14:00, 15:00, 16:00
+
+IMPORTANTE: So existem estes 7 horarios por dia. NAO ofereca outros horarios como 9h, 10h, 14h30, etc.
+Se o paciente pedir um horario que nao existe (ex: 10h ou 14h30), informe os horarios disponiveis mais proximos.
 
 === SERVICOS OFERECIDOS ===
 - Limpeza/Profilaxia

@@ -312,6 +312,36 @@ export async function POST(request: NextRequest) {
         const newDate = new Date(rescheduleData.data.newDate);
         const newTime = rescheduleData.data.newTime;
 
+        // Validar se o horário é um dos horários permitidos
+        const validTimes = ["09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"];
+        if (!validTimes.includes(newTime)) {
+          console.log("⚠️ Horário inválido para alteração:", newTime);
+          const invalidTimeMessage =
+            `Desculpe, mas o horário ${newTime} não está disponível.\n\n` +
+            `Os horários disponíveis são:\n` +
+            `Manhã: 09:30, 10:30, 11:30\n` +
+            `Tarde: 13:00, 14:00, 15:00, 16:00\n\n` +
+            `Por favor, escolha um destes horários.`;
+
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: "ASSISTANT",
+              content: invalidTimeMessage,
+            },
+          });
+
+          await zapiService.sendText({
+            phone: phoneNumber,
+            message: invalidTimeMessage,
+          });
+
+          return NextResponse.json({
+            status: "invalid_time",
+            message: "Horário não disponível",
+          });
+        }
+
         // Verificar se novo horário está disponível
         const conflictingAppointment = await prisma.appointment.findFirst({
           where: {
@@ -411,6 +441,36 @@ export async function POST(request: NextRequest) {
 
         const appointmentDate = new Date(appointmentData.data.date);
         const appointmentTime = appointmentData.data.time;
+
+        // Validar se o horário é um dos horários permitidos
+        const validTimes = ["09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"];
+        if (!validTimes.includes(appointmentTime)) {
+          console.log("⚠️ Horário inválido:", appointmentTime);
+          const invalidTimeMessage =
+            `Desculpe, mas o horário ${appointmentTime} não está disponível.\n\n` +
+            `Os horários disponíveis são:\n` +
+            `Manhã: 09:30, 10:30, 11:30\n` +
+            `Tarde: 13:00, 14:00, 15:00, 16:00\n\n` +
+            `Por favor, escolha um destes horários.`;
+
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: "ASSISTANT",
+              content: invalidTimeMessage,
+            },
+          });
+
+          await zapiService.sendText({
+            phone: phoneNumber,
+            message: invalidTimeMessage,
+          });
+
+          return NextResponse.json({
+            status: "invalid_time",
+            message: "Horário não disponível",
+          });
+        }
 
         // Verificar se já existe agendamento para este horário (outro paciente)
         const conflictingAppointment = await prisma.appointment.findFirst({
