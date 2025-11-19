@@ -131,17 +131,22 @@ export async function PATCH(
     }
 
     const updateData: any = { ...data }
+
+    // Tratar timezone da data
+    let parsedDate: Date | null = null
     if (data.date) {
-      updateData.date = new Date(data.date)
+      const dateOnly = data.date.split('T')[0] // Extrai apenas YYYY-MM-DD
+      parsedDate = new Date(dateOnly + 'T12:00:00')
+      updateData.date = parsedDate
     }
 
     // Verificar conflito apenas se data, hora ou duração mudaram
-    const dateChanged = data.date && new Date(data.date).getTime() !== currentAppointment.date.getTime()
+    const dateChanged = parsedDate && parsedDate.getTime() !== currentAppointment.date.getTime()
     const timeChanged = data.time && data.time !== currentAppointment.time
     const durationChanged = data.duration && data.duration !== currentAppointment.duration
 
     if (dateChanged || timeChanged || durationChanged) {
-      const checkDate = data.date ? new Date(data.date) : currentAppointment.date
+      const checkDate = parsedDate || currentAppointment.date
       const checkTime = data.time || currentAppointment.time
       const checkDuration = data.duration || currentAppointment.duration
 
