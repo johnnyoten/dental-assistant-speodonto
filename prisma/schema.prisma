@@ -64,6 +64,15 @@ model Prescription {
   updatedAt   DateTime @updatedAt
 }
 
+model BlockedDate {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  reason    String?  // Ex: "Feriado", "Folga", "Ferias"
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED

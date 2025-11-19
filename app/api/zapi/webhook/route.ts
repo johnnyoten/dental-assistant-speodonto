@@ -75,6 +75,60 @@ async function getOccupiedSlots(): Promise<string> {
   return result;
 }
 
+// Função para buscar dias bloqueados (feriados, folgas, etc)
+async function getBlockedDates(): Promise<string> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const thirtyDaysFromNow = new Date(today);
+  thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+  const blockedDates = await prisma.blockedDate.findMany({
+    where: {
+      date: {
+        gte: today,
+        lte: thirtyDaysFromNow,
+      },
+    },
+    orderBy: {
+      date: "asc",
+    },
+  });
+
+  if (blockedDates.length === 0) {
+    return "";
+  }
+
+  let result = "\n\n=== DIAS BLOQUEADOS (SEM ATENDIMENTO) ===\n";
+  result += "ATENÇÃO: Estes dias estão COMPLETAMENTE bloqueados. NAO agende nada nestes dias!\n\n";
+
+  for (const blocked of blockedDates) {
+    const dateObj = blocked.date;
+    const dayOfWeek = [
+      "Domingo",
+      "Segunda-feira",
+      "Terça-feira",
+      "Quarta-feira",
+      "Quinta-feira",
+      "Sexta-feira",
+      "Sábado",
+    ][dateObj.getUTCDay()];
+    const formattedDate = dateObj.toLocaleDateString("pt-BR", {
+      timeZone: "UTC",
+    });
+
+    result += `🚫 ${dayOfWeek}, ${formattedDate}`;
+    if (blocked.reason) {
+      result += ` - ${blocked.reason}`;
+    }
+    result += "\n";
+  }
+
+  result += "\nSe o paciente pedir um dia bloqueado, informe que não há atendimento e sugira outro dia.";
+
+  return result;
+}
+
 // Tipos Z-API (estrutura real da Z-API)
 interface ZApiWebhook {
   instanceId: string;
@@ -260,16 +314,17 @@ export async function POST(request: NextRequest) {
         "\nSe o cliente pedir para alterar/cancelar, use essas informacoes.\n";
     }
 
-    // Buscar horários ocupados
+    // Buscar horários ocupados e dias bloqueados
     const occupiedSlots = await getOccupiedSlots();
-    console.log("📅 Horários ocupados carregados");
+    const blockedDates = await getBlockedDates();
+    console.log("📅 Horários ocupados e dias bloqueados carregados");
 
     // Processar com IA OpenAI
     console.log("🤖 Processando com OpenAI...");
     const aiResponse = await openAIService.chat(
       messageHistory,
       context,
-      occupiedSlots + customerAppointmentsInfo
+      occupiedSlots + blockedDates + customerAppointmentsInfo
     );
 
     console.log("🤖 Resposta OpenAI:", aiResponse);
@@ -439,8 +494,39 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        const appointmentDate = new Date(appointmentData.data.date);
+        const appointmentDate = new Date(appointmentData.data.date + 'T00:00:00.000Z');
         const appointmentTime = appointmentData.data.time;
+
+        // Verificar se o dia está bloqueado
+        const isBlocked = await prisma.blockedDate.findUnique({
+          where: { date: appointmentDate }
+        });
+
+        if (isBlocked) {
+          console.log("⚠️ Dia bloqueado:", appointmentData.data.date);
+          const blockedMessage =
+            `Desculpe, mas o dia ${appointmentDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })} está bloqueado` +
+            (isBlocked.reason ? ` (${isBlocked.reason})` : '') +
+            `.\n\nPor favor, escolha outra data.`;
+
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: "ASSISTANT",
+              content: blockedMessage,
+            },
+          });
+
+          await zapiService.sendText({
+            phone: phoneNumber,
+            message: blockedMessage,
+          });
+
+          return NextResponse.json({
+            status: "blocked_date",
+            message: "Dia bloqueado",
+          });
+        }
 
         // Validar se o horário é um dos horários permitidos
         const validTimes = ["09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"];

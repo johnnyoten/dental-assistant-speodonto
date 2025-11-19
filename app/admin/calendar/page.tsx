@@ -24,13 +24,24 @@ interface CalendarData {
   total: number
 }
 
+interface BlockedDate {
+  id: string
+  date: string
+  reason: string | null
+}
+
 export default function CalendarPage() {
   const [calendarData, setCalendarData] = useState<CalendarData | null>(null)
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [showBlockModal, setShowBlockModal] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [blockReason, setBlockReason] = useState('')
 
   useEffect(() => {
     fetchCalendar()
+    fetchBlockedDates()
   }, [currentDate])
 
   const fetchCalendar = async () => {
@@ -53,6 +64,79 @@ export default function CalendarPage() {
       console.error('Erro ao buscar calendário:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchBlockedDates = async () => {
+    try {
+      const response = await fetch('/api/blocked-dates')
+      if (response.ok) {
+        const data = await response.json()
+        setBlockedDates(data.blockedDates || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dias bloqueados:', error)
+    }
+  }
+
+  const isDateBlocked = (day: number): BlockedDate | undefined => {
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return blockedDates.find(bd => bd.date === dateStr)
+  }
+
+  const handleDayClick = (day: number) => {
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const blocked = isDateBlocked(day)
+
+    if (blocked) {
+      // Desbloquear
+      if (confirm(`Desbloquear este dia?\n${blocked.reason ? `Motivo atual: ${blocked.reason}` : ''}`)) {
+        unblockDate(blocked.id)
+      }
+    } else {
+      // Bloquear
+      setSelectedDate(dateStr)
+      setBlockReason('')
+      setShowBlockModal(true)
+    }
+  }
+
+  const blockDate = async () => {
+    if (!selectedDate) return
+
+    try {
+      const response = await fetch('/api/blocked-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: selectedDate, reason: blockReason || null })
+      })
+
+      if (response.ok) {
+        fetchBlockedDates()
+        setShowBlockModal(false)
+        setSelectedDate(null)
+        setBlockReason('')
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao bloquear dia')
+      }
+    } catch (error) {
+      console.error('Erro ao bloquear dia:', error)
+      alert('Erro ao bloquear dia')
+    }
+  }
+
+  const unblockDate = async (id: string) => {
+    try {
+      const response = await fetch(`/api/blocked-dates?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        fetchBlockedDates()
+      }
+    } catch (error) {
+      console.error('Erro ao desbloquear dia:', error)
     }
   }
 
@@ -167,20 +251,38 @@ export default function CalendarPage() {
               const appointments = getAppointmentsForDate(day)
               const hasAppointments = appointments.length > 0
               const today = isToday(day)
+              const blocked = isDateBlocked(day)
 
               return (
                 <div
                   key={day}
-                  className={`aspect-square border rounded-lg p-1 ${
-                    today ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                  } ${hasAppointments ? 'bg-green-50' : ''}`}
+                  onClick={() => handleDayClick(day)}
+                  className={`aspect-square border rounded-lg p-1 cursor-pointer transition-colors ${
+                    blocked
+                      ? 'border-red-300 bg-red-100'
+                      : today
+                        ? 'border-blue-500 bg-blue-50'
+                        : hasAppointments
+                          ? 'bg-green-50 border-gray-200'
+                          : 'border-gray-200 hover:bg-gray-50'
+                  }`}
                 >
                   <div className={`text-xs font-medium ${
-                    today ? 'text-blue-600' : 'text-gray-700'
+                    blocked
+                      ? 'text-red-600'
+                      : today
+                        ? 'text-blue-600'
+                        : 'text-gray-700'
                   }`}>
                     {day}
                   </div>
-                  {hasAppointments && (
+                  {blocked ? (
+                    <div className="mt-0.5">
+                      <div className="text-[8px] text-center text-red-500 font-medium truncate">
+                        {blocked.reason || 'Bloq.'}
+                      </div>
+                    </div>
+                  ) : hasAppointments && (
                     <div className="mt-0.5">
                       <div className="w-1 h-1 bg-green-500 rounded-full mx-auto"></div>
                       <div className="text-[10px] text-center text-green-600 font-medium">
@@ -192,6 +294,25 @@ export default function CalendarPage() {
               )
             })}
           </div>
+
+          {/* Legenda */}
+          <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-gray-500">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-100 border border-green-300 rounded"></div>
+              <span>Com agendamento</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-red-100 border border-red-300 rounded"></div>
+              <span>Bloqueado</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-blue-50 border border-blue-500 rounded"></div>
+              <span>Hoje</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2">
+            Clique em um dia para bloquear/desbloquear
+          </p>
         </Card>
 
         {/* Lista de Agendamentos do Mês */}
@@ -258,6 +379,53 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      {/* Modal para bloquear dia */}
+      {showBlockModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 w-full max-w-sm">
+            <h3 className="text-lg font-bold mb-3">Bloquear Dia</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+              })}
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Motivo (opcional)
+              </label>
+              <input
+                type="text"
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                placeholder="Ex: Feriado, Folga, Ferias..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowBlockModal(false)
+                  setSelectedDate(null)
+                  setBlockReason('')
+                }}
+                className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={blockDate}
+                className="flex-1 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Bloquear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }
