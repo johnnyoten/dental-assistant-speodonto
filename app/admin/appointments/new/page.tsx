@@ -27,14 +27,15 @@ const statusOptions = [
   { value: "CONFIRMED", label: "Confirmado" },
 ];
 
-const durationOptions = [
-  { value: "15", label: "15 minutos" },
-  { value: "30", label: "30 minutos" },
-  { value: "45", label: "45 minutos" },
-  { value: "60", label: "1 hora" },
-  { value: "90", label: "1h 30min" },
-  { value: "120", label: "2 horas" },
-  { value: "180", label: "3 horas" },
+const timeOptions = [
+  { value: "", label: "Selecione um horário" },
+  { value: "09:30", label: "09:30" },
+  { value: "10:30", label: "10:30" },
+  { value: "11:30", label: "11:30" },
+  { value: "13:00", label: "13:00" },
+  { value: "14:00", label: "14:00" },
+  { value: "15:00", label: "15:00" },
+  { value: "16:00", label: "16:00" },
 ];
 
 export default function NewAppointmentPage() {
@@ -49,10 +50,11 @@ export default function NewAppointmentPage() {
     service: "",
     date: "",
     time: "",
-    duration: 30,
+    duration: 60, // Duração fixa de 1 hora
     notes: "",
     status: "CONFIRMED",
   });
+  const [phoneDisplay, setPhoneDisplay] = useState("");
 
   // Função para formatar data DD/MM/YYYY -> YYYY-MM-DD (ISO)
   const convertToISO = (dateStr: string): string => {
@@ -176,15 +178,35 @@ export default function NewAppointmentPage() {
                 placeholder="Ex: João Silva"
               />
 
-              <Input
-                label="Telefone"
-                name="customerPhone"
-                type="tel"
-                value={formData.customerPhone}
-                onChange={handleChange}
-                required
-                placeholder="Ex: (11) 99999-9999"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefone *
+                </label>
+                <input
+                  type="tel"
+                  value={phoneDisplay}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, "");
+                    if (value.length > 11) value = value.slice(0, 11);
+
+                    // Formatar: (11) 99999-9999
+                    let formatted = value;
+                    if (value.length >= 2) {
+                      formatted = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                    }
+                    if (value.length >= 7) {
+                      formatted = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+                    }
+
+                    setPhoneDisplay(formatted);
+                    setFormData({ ...formData, customerPhone: value });
+                  }}
+                  required
+                  placeholder="(11) 99999-9999"
+                  maxLength={15}
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
 
               <Select
                 label="Serviço"
@@ -211,34 +233,23 @@ export default function NewAppointmentPage() {
                   />
                 </div>
 
-                <Input
+                <Select
                   label="Horário"
                   name="time"
-                  type="time"
                   value={formData.time}
                   onChange={handleChange}
+                  options={timeOptions}
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Select
-                  label="Duração"
-                  name="duration"
-                  value={String(formData.duration)}
-                  onChange={handleChange}
-                  options={durationOptions}
-                  required
-                />
-
-                <Select
-                  label="Status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  options={statusOptions}
-                />
-              </div>
+              <Select
+                label="Status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                options={statusOptions}
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
