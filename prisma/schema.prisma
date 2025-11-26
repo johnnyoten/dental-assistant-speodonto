@@ -82,6 +82,7 @@ enum AppointmentStatus {
 
 enum ConversationStatus {
   ACTIVE
+  WAITING_AGENT
   CLOSED
 }
 

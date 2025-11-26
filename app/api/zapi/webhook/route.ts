@@ -6,19 +6,42 @@ import { openAIService } from "@/lib/ai-service-openai";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Função para buscar horários ocupados nos próximos 30 dias
-async function getOccupiedSlots(): Promise<string> {
+// Horários fixos disponíveis
+const VALID_TIMES = ["09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"];
+
+// Função para buscar horários disponíveis nos próximos dias
+async function getAvailableSlots(): Promise<string> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const thirtyDaysFromNow = new Date(today);
-  thirtyDaysFromNow.setDate(today.getDate() + 30);
+  const daysToShow = 14; // Mostrar próximos 14 dias
+
+  // Buscar dias bloqueados
+  const blockedDates = await prisma.blockedDate.findMany({
+    where: {
+      date: {
+        gte: today,
+      },
+    },
+    select: {
+      date: true,
+      reason: true,
+    },
+  });
+
+  const blockedDateStrings = new Set(
+    blockedDates.map(bd => bd.date.toISOString().split("T")[0])
+  );
+
+  // Buscar agendamentos
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + daysToShow);
 
   const appointments = await prisma.appointment.findMany({
     where: {
       date: {
         gte: today,
-        lte: thirtyDaysFromNow,
+        lte: endDate,
       },
       status: {
         not: "CANCELLED",
@@ -27,17 +50,11 @@ async function getOccupiedSlots(): Promise<string> {
     select: {
       date: true,
       time: true,
-      customerName: true,
-      service: true,
     },
     orderBy: [{ date: "asc" }, { time: "asc" }],
   });
 
-  if (appointments.length === 0) {
-    return "Não há horários ocupados nos próximos 30 dias. Todos os horários estão disponíveis.";
-  }
-
-  // Agrupar por data
+  // Agrupar agendamentos por data
   const appointmentsByDate = appointments.reduce((acc, apt) => {
     const dateStr = apt.date.toISOString().split("T")[0];
     if (!acc[dateStr]) {
@@ -47,30 +64,61 @@ async function getOccupiedSlots(): Promise<string> {
     return acc;
   }, {} as Record<string, string[]>);
 
-  let result = "HORÁRIOS JÁ OCUPADOS (NÃO DISPONÍVEIS):\n\n";
+  // Calcular disponibilidade para cada dia
+  let result = "=== HORÁRIOS DISPONÍVEIS ===\n\n";
+  let hasAvailableSlots = false;
 
-  for (const [date, times] of Object.entries(appointmentsByDate)) {
-    const dateObj = new Date(date + "T12:00:00Z");
-    const dayOfWeek = [
-      "Domingo",
-      "Segunda-feira",
-      "Terça-feira",
-      "Quarta-feira",
-      "Quinta-feira",
-      "Sexta-feira",
-      "Sábado",
-    ][dateObj.getUTCDay()];
-    const formattedDate = dateObj.toLocaleDateString("pt-BR", {
-      timeZone: "UTC",
-    });
+  for (let i = 0; i < daysToShow; i++) {
+    const currentDate = new Date(today);
+    currentDate.setDate(today.getDate() + i);
+    const dateStr = currentDate.toISOString().split("T")[0];
 
-    result += `📅 ${dayOfWeek}, ${formattedDate}:\n`;
-    result += `   Ocupados: ${times.sort().join(", ")}\n\n`;
+    // Pular finais de semana (0 = domingo, 6 = sábado)
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      continue;
+    }
+
+    // Verificar se dia está bloqueado
+    if (blockedDateStrings.has(dateStr)) {
+      continue;
+    }
+
+    const occupiedTimes = appointmentsByDate[dateStr] || [];
+    const availableTimes = VALID_TIMES.filter(time => !occupiedTimes.includes(time));
+
+    // Só mostrar dias que têm pelo menos um horário disponível
+    if (availableTimes.length > 0) {
+      hasAvailableSlots = true;
+      const dayName = [
+        "Domingo",
+        "Segunda-feira",
+        "Terça-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sábado",
+      ][dayOfWeek];
+      const formattedDate = currentDate.toLocaleDateString("pt-BR");
+
+      result += `📅 ${dayName}, ${formattedDate}:\n`;
+      result += `   ✅ Disponíveis: ${availableTimes.join(", ")}\n`;
+      if (occupiedTimes.length > 0) {
+        result += `   ❌ Ocupados: ${occupiedTimes.join(", ")}\n`;
+      }
+      result += `\n`;
+    }
   }
 
-  result += "\n⚠️ IMPORTANTE: NÃO confirme agendamentos para estes horários!\n";
-  result +=
-    "Se o paciente pedir um horário ocupado, informe que já está ocupado e sugira outro horário disponível.";
+  if (!hasAvailableSlots) {
+    result += "⚠️ Não há horários disponíveis nos próximos dias.\n";
+    result += "Por favor, entre em contato para verificar disponibilidade.\n";
+  }
+
+  result += "\n💡 IMPORTANTE:\n";
+  result += "- Horários disponíveis: Manhã (09:30, 10:30, 11:30) e Tarde (13:00, 14:00, 15:00, 16:00)\n";
+  result += "- Quando o paciente perguntar horários disponíveis, mostre APENAS os horários marcados como ✅ Disponíveis\n";
+  result += "- NUNCA sugira horários marcados como ❌ Ocupados\n";
 
   return result;
 }
@@ -289,6 +337,42 @@ export async function POST(request: NextRequest) {
     // Obter contexto da conversa
     const context = (conversation.context as any) || {};
 
+    // Detectar se o usuário quer falar com um atendente
+    const wantsHumanAgent = /\b(atendente|humano|pessoa|algu[ée]m|transfer|falar com|preciso falar)\b/i.test(messageText);
+
+    if (wantsHumanAgent) {
+      const humanAgentMessage =
+        "Entendi! Vou encaminhar sua solicitação para um de nossos atendentes. " +
+        "Eles entrarão em contato com você em breve. Agradecemos a compreensão! 😊";
+
+      // Salvar resposta no banco
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: "ASSISTANT",
+          content: humanAgentMessage,
+        },
+      });
+
+      // Enviar mensagem
+      await zapiService.sendText({
+        phone: phoneNumber,
+        message: humanAgentMessage,
+      });
+
+      // Atualizar status da conversa para WAITING_AGENT
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { status: "WAITING_AGENT" },
+      });
+
+      console.log("👤 Usuário solicitou atendente humano");
+      return NextResponse.json({
+        status: "human_agent_requested",
+        message: "Encaminhado para atendente",
+      });
+    }
+
     // Buscar agendamentos existentes deste cliente
     const customerAppointments = await prisma.appointment.findMany({
       where: {
@@ -314,17 +398,17 @@ export async function POST(request: NextRequest) {
         "\nSe o cliente pedir para alterar/cancelar, use essas informacoes.\n";
     }
 
-    // Buscar horários ocupados e dias bloqueados
-    const occupiedSlots = await getOccupiedSlots();
+    // Buscar horários disponíveis e dias bloqueados
+    const availableSlots = await getAvailableSlots();
     const blockedDates = await getBlockedDates();
-    console.log("📅 Horários ocupados e dias bloqueados carregados");
+    console.log("📅 Horários disponíveis e dias bloqueados carregados");
 
     // Processar com IA OpenAI
     console.log("🤖 Processando com OpenAI...");
     const aiResponse = await openAIService.chat(
       messageHistory,
       context,
-      occupiedSlots + blockedDates + customerAppointmentsInfo
+      availableSlots + "\n\n" + blockedDates + customerAppointmentsInfo
     );
 
     console.log("🤖 Resposta OpenAI:", aiResponse);
