@@ -57,12 +57,26 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Buscar horários bloqueados do mês
+    const blockedSlots = await prisma.blockedTimeSlot.findMany({
+      where: {
+        date: {
+          gte: firstDay,
+          lte: lastDay
+        }
+      },
+      orderBy: [
+        { date: 'asc' },
+        { startTime: 'asc' }
+      ]
+    })
+
     console.log(`📊 Encontrados ${appointments.length} agendamentos`)
     appointments.forEach(apt => {
       console.log(`  - ${apt.customerName}: ${apt.date.toISOString()} às ${apt.time}`)
     })
 
-    // Agrupar por data
+    // Agrupar agendamentos por data
     const appointmentsByDate: Record<string, typeof appointments> = {}
 
     appointments.forEach(apt => {
@@ -75,12 +89,25 @@ export async function GET(request: NextRequest) {
       appointmentsByDate[dateKey].push(apt)
     })
 
+    // Agrupar horários bloqueados por data
+    const blockedSlotsByDate: Record<string, typeof blockedSlots> = {}
+
+    blockedSlots.forEach(slot => {
+      const dateKey = slot.date.toISOString().split('T')[0]
+      if (!blockedSlotsByDate[dateKey]) {
+        blockedSlotsByDate[dateKey] = []
+      }
+      blockedSlotsByDate[dateKey].push(slot)
+    })
+
     console.log('📋 Agendamentos agrupados:', Object.keys(appointmentsByDate))
+    console.log('🚫 Horários bloqueados agrupados:', Object.keys(blockedSlotsByDate))
 
     return NextResponse.json({
       year,
       month: monthNum + 1,
       appointments: appointmentsByDate,
+      blockedSlots: blockedSlotsByDate,
       total: appointments.length
     })
   } catch (error) {

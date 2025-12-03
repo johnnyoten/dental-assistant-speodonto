@@ -21,6 +21,7 @@ interface CalendarData {
   year: number
   month: number
   appointments: Record<string, Appointment[]>
+  blockedSlots: Record<string, BlockedTimeSlot[]>
   total: number
 }
 
@@ -30,14 +31,26 @@ interface BlockedDate {
   reason: string | null
 }
 
+interface BlockedTimeSlot {
+  id: string
+  date: string
+  startTime: string
+  endTime: string
+  reason?: string
+}
+
 export default function CalendarPage() {
   const [calendarData, setCalendarData] = useState<CalendarData | null>(null)
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showBlockModal, setShowBlockModal] = useState(false)
+  const [showDayDetailsModal, setShowDayDetailsModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [blockReason, setBlockReason] = useState('')
+  const [blockType, setBlockType] = useState<'full-day' | 'time-range'>('full-day')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
 
   useEffect(() => {
     fetchCalendar()
@@ -86,43 +99,70 @@ export default function CalendarPage() {
 
   const handleDayClick = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const blocked = isDateBlocked(day)
+    setSelectedDate(dateStr)
 
-    if (blocked) {
-      // Desbloquear
-      if (confirm(`Desbloquear este dia?\n${blocked.reason ? `Motivo atual: ${blocked.reason}` : ''}`)) {
-        unblockDate(blocked.id)
-      }
-    } else {
-      // Bloquear
-      setSelectedDate(dateStr)
-      setBlockReason('')
-      setShowBlockModal(true)
-    }
+    // Abrir modal com detalhes do dia
+    setShowDayDetailsModal(true)
   }
 
   const blockDate = async () => {
     if (!selectedDate) return
 
     try {
-      const response = await fetch('/api/blocked-dates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: selectedDate, reason: blockReason || null })
-      })
+      if (blockType === 'full-day') {
+        // Bloquear dia inteiro
+        const response = await fetch('/api/blocked-dates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: selectedDate, reason: blockReason || null })
+        })
 
-      if (response.ok) {
-        fetchBlockedDates()
-        setShowBlockModal(false)
-        setSelectedDate(null)
-        setBlockReason('')
+        if (response.ok) {
+          fetchBlockedDates()
+          setShowBlockModal(false)
+          setSelectedDate(null)
+          setBlockReason('')
+        } else {
+          const data = await response.json()
+          alert(data.error || 'Erro ao bloquear dia')
+        }
       } else {
-        const data = await response.json()
-        alert(data.error || 'Erro ao bloquear dia')
+        // Bloquear horário específico
+        if (!startTime || !endTime) {
+          alert('Informe o horário de início e fim')
+          return
+        }
+
+        const token = localStorage.getItem('adminToken')
+        const response = await fetch('/api/blocked-slots', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            date: selectedDate,
+            startTime,
+            endTime,
+            reason: blockReason || null
+          })
+        })
+
+        if (response.ok) {
+          fetchCalendar() // Recarregar calendário para mostrar horário bloqueado
+          setShowBlockModal(false)
+          setSelectedDate(null)
+          setBlockReason('')
+          setStartTime('')
+          setEndTime('')
+        } else {
+          const data = await response.json()
+          alert(data.error || 'Erro ao bloquear horário')
+        }
       }
     } catch (error) {
-      console.error('Erro ao bloquear dia:', error)
-      alert('Erro ao bloquear dia')
+      console.error('Erro ao bloquear:', error)
+      alert('Erro ao bloquear')
     }
   }
 
@@ -137,6 +177,24 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error('Erro ao desbloquear dia:', error)
+    }
+  }
+
+  const deleteBlockedSlot = async (id: string) => {
+    if (!confirm('Deseja realmente remover este horário bloqueado?')) return
+
+    try {
+      const token = localStorage.getItem('adminToken')
+      const response = await fetch(`/api/blocked-slots/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        fetchCalendar() // Recarregar calendário
+      }
+    } catch (error) {
+      console.error('Erro ao deletar horário bloqueado:', error)
     }
   }
 
@@ -163,6 +221,22 @@ export default function CalendarPage() {
     if (!calendarData) return []
     const dateKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     return calendarData.appointments[dateKey] || []
+  }
+
+  const getBlockedSlotsForDate = (day: number): BlockedTimeSlot[] => {
+    if (!calendarData) return []
+    const dateKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return calendarData.blockedSlots[dateKey] || []
+  }
+
+  const getBlockedSlotsForDateStr = (dateStr: string): BlockedTimeSlot[] => {
+    if (!calendarData) return []
+    return calendarData.blockedSlots[dateStr] || []
+  }
+
+  const getAppointmentsForDateStr = (dateStr: string): Appointment[] => {
+    if (!calendarData) return []
+    return calendarData.appointments[dateStr] || []
   }
 
   const isToday = (day: number) => {
@@ -249,7 +323,9 @@ export default function CalendarPage() {
             {Array.from({ length: daysInMonth }).map((_, index) => {
               const day = index + 1
               const appointments = getAppointmentsForDate(day)
+              const blockedSlots = getBlockedSlotsForDate(day)
               const hasAppointments = appointments.length > 0
+              const hasBlockedSlots = blockedSlots.length > 0
               const today = isToday(day)
               const blocked = isDateBlocked(day)
 
@@ -262,7 +338,7 @@ export default function CalendarPage() {
                       ? 'border-red-300 bg-red-100'
                       : today
                         ? 'border-blue-500 bg-blue-50'
-                        : hasAppointments
+                        : hasAppointments || hasBlockedSlots
                           ? 'bg-green-50 border-gray-200'
                           : 'border-gray-200 hover:bg-gray-50'
                   }`}
@@ -282,12 +358,24 @@ export default function CalendarPage() {
                         {blocked.reason || 'Bloq.'}
                       </div>
                     </div>
-                  ) : hasAppointments && (
-                    <div className="mt-0.5">
-                      <div className="w-1 h-1 bg-green-500 rounded-full mx-auto"></div>
-                      <div className="text-[10px] text-center text-green-600 font-medium">
-                        {appointments.length}
-                      </div>
+                  ) : (hasAppointments || hasBlockedSlots) && (
+                    <div className="mt-0.5 space-y-0.5">
+                      {hasAppointments && (
+                        <div className="flex items-center justify-center gap-0.5">
+                          <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                          <div className="text-[10px] text-green-600 font-medium">
+                            {appointments.length}
+                          </div>
+                        </div>
+                      )}
+                      {hasBlockedSlots && (
+                        <div className="flex items-center justify-center gap-0.5">
+                          <div className="w-1 h-1 bg-orange-500 rounded-full"></div>
+                          <div className="text-[10px] text-orange-600 font-medium">
+                            {blockedSlots.length}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -298,12 +386,16 @@ export default function CalendarPage() {
           {/* Legenda */}
           <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-gray-500">
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-100 border border-green-300 rounded"></div>
-              <span>Com agendamento</span>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Agendamentos</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <span>Horários bloqueados</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-red-100 border border-red-300 rounded"></div>
-              <span>Bloqueado</span>
+              <span>Dia bloqueado</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-blue-50 border border-blue-500 rounded"></div>
@@ -311,7 +403,7 @@ export default function CalendarPage() {
             </div>
           </div>
           <p className="text-[10px] text-gray-400 mt-2">
-            Clique em um dia para bloquear/desbloquear
+            Clique em um dia para ver detalhes, agendamentos e gerenciar bloqueios
           </p>
         </Card>
 
@@ -380,12 +472,150 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Modal para bloquear dia */}
+      {/* Modal de detalhes do dia */}
+      {showDayDetailsModal && selectedDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">
+                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </h3>
+              <button
+                onClick={() => setShowDayDetailsModal(false)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Agendamentos do dia */}
+            {getAppointmentsForDateStr(selectedDate).length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Agendamentos</h4>
+                <div className="space-y-2">
+                  {getAppointmentsForDateStr(selectedDate).map(apt => (
+                    <div key={apt.id} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-sm">{apt.time}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
+                          apt.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {apt.status === 'CONFIRMED' ? 'Confirmado' :
+                           apt.status === 'CANCELLED' ? 'Cancelado' : 'Pendente'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">{apt.customerName}</p>
+                      <p className="text-xs text-gray-600">{apt.service}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Horários bloqueados */}
+            {getBlockedSlotsForDateStr(selectedDate).length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Horários Bloqueados</h4>
+                <div className="space-y-2">
+                  {getBlockedSlotsForDateStr(selectedDate).map(slot => (
+                    <div key={slot.id} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            <span className="font-semibold text-sm text-red-900">
+                              {slot.startTime} - {slot.endTime}
+                            </span>
+                          </div>
+                          {slot.reason && (
+                            <p className="text-xs text-red-700">{slot.reason}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => deleteBlockedSlot(slot.id)}
+                          className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                          title="Remover bloqueio"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Dia inteiro bloqueado */}
+            {isDateBlocked(parseInt(selectedDate.split('-')[2])) && (
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Dia Bloqueado</h4>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-red-900">Dia inteiro bloqueado</p>
+                      {isDateBlocked(parseInt(selectedDate.split('-')[2]))?.reason && (
+                        <p className="text-xs text-red-700 mt-1">
+                          {isDateBlocked(parseInt(selectedDate.split('-')[2]))?.reason}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const blocked = isDateBlocked(parseInt(selectedDate.split('-')[2]))
+                        if (blocked) {
+                          unblockDate(blocked.id)
+                          setShowDayDetailsModal(false)
+                        }
+                      }}
+                      className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                      title="Desbloquear dia"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Botão para adicionar bloqueio */}
+            <button
+              onClick={() => {
+                setShowDayDetailsModal(false)
+                setBlockReason('')
+                setBlockType('full-day')
+                setStartTime('')
+                setEndTime('')
+                setShowBlockModal(true)
+              }}
+              className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            >
+              Bloquear Horário
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para bloquear dia/horário */}
       {showBlockModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-3">Bloquear Dia</h3>
-            <p className="text-sm text-gray-600 mb-3">
+            <h3 className="text-lg font-bold mb-3">Bloquear Horário</h3>
+            <p className="text-sm text-gray-600 mb-4">
               {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', {
                 weekday: 'long',
                 day: '2-digit',
@@ -393,6 +623,65 @@ export default function CalendarPage() {
                 year: 'numeric'
               })}
             </p>
+
+            {/* Tipo de bloqueio */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de bloqueio
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="full-day"
+                    checked={blockType === 'full-day'}
+                    onChange={(e) => setBlockType(e.target.value as 'full-day')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Dia inteiro</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="time-range"
+                    checked={blockType === 'time-range'}
+                    onChange={(e) => setBlockType(e.target.value as 'time-range')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Horário específico</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Campos de horário (apenas se time-range) */}
+            {blockType === 'time-range' && (
+              <div className="mb-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Horário de início
+                  </label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Horário de término
+                  </label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Motivo */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Motivo (opcional)
@@ -401,16 +690,20 @@ export default function CalendarPage() {
                 type="text"
                 value={blockReason}
                 onChange={(e) => setBlockReason(e.target.value)}
-                placeholder="Ex: Feriado, Folga, Ferias..."
+                placeholder={blockType === 'full-day' ? 'Ex: Feriado, Folga, Férias...' : 'Ex: Almoço, Reunião...'}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {/* Botões */}
             <div className="flex gap-2">
               <button
                 onClick={() => {
                   setShowBlockModal(false)
                   setSelectedDate(null)
                   setBlockReason('')
+                  setStartTime('')
+                  setEndTime('')
                 }}
                 className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
               >

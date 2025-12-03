@@ -73,6 +73,18 @@ model BlockedDate {
   @@index([date])
 }
 
+model BlockedTimeSlot {
+  id        String   @id @default(cuid())
+  date      DateTime
+  startTime String   // Formato HH:MM (ex: "09:00")
+  endTime   String   // Formato HH:MM (ex: "12:00")
+  reason    String?  // Ex: "Almoço", "Reunião", "Indisponível"
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([date, startTime, endTime])
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED

@@ -9,7 +9,8 @@ import {
   ClockIcon,
   PhoneIcon,
   PlusIcon,
-  FunnelIcon
+  FunnelIcon,
+  NoSymbolIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 
@@ -24,9 +25,18 @@ interface Appointment {
   notes?: string
 }
 
+interface BlockedTimeSlot {
+  id: string
+  date: string
+  startTime: string
+  endTime: string
+  reason?: string
+}
+
 export default function AppointmentsPage() {
   const router = useRouter()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [blockedSlots, setBlockedSlots] = useState<BlockedTimeSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'today'>('upcoming')
 
@@ -40,24 +50,41 @@ export default function AppointmentsPage() {
       const token = localStorage.getItem('adminToken')
 
       let url = '/api/appointments'
+      let startDate = ''
+      let endDate = ''
+
       if (filter === 'today') {
         const today = new Date().toISOString().split('T')[0]
         url += `?startDate=${today}&endDate=${today}`
+        startDate = today
+        endDate = today
       } else if (filter === 'upcoming') {
         const today = new Date().toISOString().split('T')[0]
         const nextMonth = new Date()
         nextMonth.setMonth(nextMonth.getMonth() + 1)
         const nextMonthStr = nextMonth.toISOString().split('T')[0]
         url += `?startDate=${today}&endDate=${nextMonthStr}`
+        startDate = today
+        endDate = nextMonthStr
       }
 
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const [appointmentsRes, blockedSlotsRes] = await Promise.all([
+        fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`/api/blocked-slots?startDate=${startDate}&endDate=${endDate}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ])
 
-      if (response.ok) {
-        const data = await response.json()
+      if (appointmentsRes.ok) {
+        const data = await appointmentsRes.json()
         setAppointments(data)
+      }
+
+      if (blockedSlotsRes.ok) {
+        const data = await blockedSlotsRes.json()
+        setBlockedSlots(data)
       }
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error)
@@ -86,8 +113,8 @@ export default function AppointmentsPage() {
     return labels[status as keyof typeof labels] || status
   }
 
-  const groupByDate = (appointments: Appointment[]) => {
-    const grouped: { [key: string]: Appointment[] } = {}
+  const groupByDate = (appointments: Appointment[], blockedSlots: BlockedTimeSlot[]) => {
+    const grouped: { [key: string]: { appointments: Appointment[], blockedSlots: BlockedTimeSlot[] } } = {}
 
     appointments.forEach((apt) => {
       const date = new Date(apt.date).toLocaleDateString('pt-BR', {
@@ -96,15 +123,27 @@ export default function AppointmentsPage() {
         month: 'long'
       })
       if (!grouped[date]) {
-        grouped[date] = []
+        grouped[date] = { appointments: [], blockedSlots: [] }
       }
-      grouped[date].push(apt)
+      grouped[date].appointments.push(apt)
+    })
+
+    blockedSlots.forEach((slot) => {
+      const date = new Date(slot.date).toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long'
+      })
+      if (!grouped[date]) {
+        grouped[date] = { appointments: [], blockedSlots: [] }
+      }
+      grouped[date].blockedSlots.push(slot)
     })
 
     return grouped
   }
 
-  const groupedAppointments = groupByDate(appointments)
+  const groupedAppointments = groupByDate(appointments, blockedSlots)
 
   return (
     <Layout>
@@ -163,13 +202,33 @@ export default function AppointmentsPage() {
           </div>
         ) : Object.keys(groupedAppointments).length > 0 ? (
           <div className="space-y-6">
-            {Object.entries(groupedAppointments).map(([date, apts]) => (
+            {Object.entries(groupedAppointments).map(([date, data]) => (
               <div key={date}>
                 <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3 sticky top-16 bg-gray-50 py-2">
                   {date}
                 </h3>
                 <div className="space-y-3">
-                  {apts.map((appointment) => (
+                  {/* Horários Bloqueados */}
+                  {data.blockedSlots.map((slot) => (
+                    <Card key={slot.id} className="bg-red-50 border-red-200">
+                      <div className="flex items-center space-x-3">
+                        <NoSymbolIcon className="h-5 w-5 text-red-600" />
+                        <div>
+                          <p className="font-semibold text-red-900">
+                            Horário Bloqueado: {slot.startTime} - {slot.endTime}
+                          </p>
+                          {slot.reason && (
+                            <p className="text-sm text-red-700">
+                              {slot.reason}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+
+                  {/* Agendamentos */}
+                  {data.appointments.map((appointment) => (
                     <Card
                       key={appointment.id}
                       onClick={() => router.push(`/admin/appointments/${appointment.id}`)}
