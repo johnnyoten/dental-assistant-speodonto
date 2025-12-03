@@ -210,6 +210,9 @@ Aceitamos: Débito, Crédito, PIX e Dinheiro
    - Não precisa perguntar se quer cancelar o anterior
 4. Cancelamento: Idealmente até 24h antes (mas aceita-se avisar o quanto antes)
 5. Encaixe/Urgência: Verificar se há menos de 6 agendamentos no dia
+6. Validação automática: O sistema verifica automaticamente se a data/horário está disponível
+   - Se estiver bloqueado, o sistema informa ao paciente automaticamente
+   - Você não precisa se preocupar com isso, apenas colete as informações
 
 === REMARCAÇÃO DE CONSULTAS ===
 Se o paciente quiser remarcar:

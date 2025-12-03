@@ -103,7 +103,73 @@ export async function POST(request: NextRequest) {
     const appointmentData = aiService.extractAppointmentData(aiResponse);
 
     if (appointmentData.isComplete && appointmentData.data) {
-      // Verifica se já existe um agendamento PENDING ou CONFIRMED para este cliente
+      const requestedDate = new Date(appointmentData.data.date);
+      const requestedTime = appointmentData.data.time;
+
+      // 1. Verifica se o dia está completamente bloqueado
+      const blockedDate = await prisma.blockedDate.findFirst({
+        where: {
+          date: requestedDate
+        }
+      });
+
+      if (blockedDate) {
+        const blockMessage =
+          `Desculpe, mas o dia ${requestedDate.toLocaleDateString('pt-BR')} está indisponível` +
+          (blockedDate.reason ? ` (${blockedDate.reason})` : '') +
+          `. Por gentileza, escolha outra data para seu agendamento.`;
+
+        await whatsappService.sendMessage(from, blockMessage);
+        return NextResponse.json({ status: "date_blocked" });
+      }
+
+      // 2. Verifica se há bloqueio de horário específico
+      const blockedTimeSlots = await prisma.blockedTimeSlot.findMany({
+        where: {
+          date: requestedDate
+        }
+      });
+
+      // Função auxiliar para verificar se um horário está dentro de um intervalo bloqueado
+      const isTimeBlocked = (time: string, slots: Array<{ startTime: string; endTime: string }>): boolean => {
+        return slots.some((slot: { startTime: string; endTime: string }) => {
+          // Converter horários para minutos para facilitar comparação
+          const [reqHour, reqMin] = time.split(':').map(Number);
+          const [startHour, startMin] = slot.startTime.split(':').map(Number);
+          const [endHour, endMin] = slot.endTime.split(':').map(Number);
+
+          const requestedMinutes = reqHour * 60 + reqMin;
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+
+          return requestedMinutes >= startMinutes && requestedMinutes < endMinutes;
+        });
+      };
+
+      if (isTimeBlocked(requestedTime, blockedTimeSlots)) {
+        const blockedSlot = blockedTimeSlots.find((slot: { startTime: string; endTime: string; reason?: string | null }) => {
+          const [reqHour, reqMin] = requestedTime.split(':').map(Number);
+          const [startHour, startMin] = slot.startTime.split(':').map(Number);
+          const [endHour, endMin] = slot.endTime.split(':').map(Number);
+
+          const requestedMinutes = reqHour * 60 + reqMin;
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+
+          return requestedMinutes >= startMinutes && requestedMinutes < endMinutes;
+        });
+
+        const blockMessage =
+          `Desculpe, mas o horário ${requestedTime} do dia ${requestedDate.toLocaleDateString('pt-BR')} está indisponível` +
+          (blockedSlot?.reason ? ` (${blockedSlot.reason})` : '') +
+          `. Por gentileza, escolha outro horário para seu agendamento.\n\n` +
+          `Horários disponíveis: 9h30, 10h00, 10h30, 11h00, 11h30, 13h00, 13h30, 14h00, 14h30, 15h00, 15h30, 16h00, 16h30`;
+
+        await whatsappService.sendMessage(from, blockMessage);
+        return NextResponse.json({ status: "time_blocked" });
+      }
+
+      // 3. Verifica se já existe um agendamento PENDING ou CONFIRMED para este cliente
       const existingAppointments = await prisma.appointment.findMany({
         where: {
           customerPhone: from,
