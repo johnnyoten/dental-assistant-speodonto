@@ -103,7 +103,37 @@ export async function POST(request: NextRequest) {
     const appointmentData = aiService.extractAppointmentData(aiResponse);
 
     if (appointmentData.isComplete && appointmentData.data) {
-      // Cria agendamento
+      // Verifica se já existe um agendamento PENDING ou CONFIRMED para este cliente
+      const existingAppointments = await prisma.appointment.findMany({
+        where: {
+          customerPhone: from,
+          status: {
+            in: ["PENDING", "CONFIRMED"]
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      // Se houver agendamentos existentes, cancela todos (é uma remarcação)
+      if (existingAppointments.length > 0) {
+        console.log(`📅 Cancelando ${existingAppointments.length} agendamento(s) existente(s) do cliente ${from}`);
+
+        await prisma.appointment.updateMany({
+          where: {
+            customerPhone: from,
+            status: {
+              in: ["PENDING", "CONFIRMED"]
+            }
+          },
+          data: {
+            status: "CANCELLED"
+          }
+        });
+      }
+
+      // Cria novo agendamento
       const appointment = await prisma.appointment.create({
         data: {
           customerName: appointmentData.data.customerName,
@@ -116,6 +146,8 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      console.log(`✅ Novo agendamento criado: ${appointment.id}`);
+
       // Fecha conversa
       await prisma.conversation.update({
         where: { id: conversation.id },
@@ -123,8 +155,9 @@ export async function POST(request: NextRequest) {
       });
 
       // Envia mensagem de confirmação limpa
+      const isRescheduling = existingAppointments.length > 0;
       const confirmationMessage =
-        `✅ Agendamento confirmado!\n\n` +
+        `✅ ${isRescheduling ? 'Agendamento remarcado' : 'Agendamento confirmado'}!\n\n` +
         `📋 Resumo:\n` +
         `Nome: ${appointmentData.data.customerName}\n` +
         `Serviço: ${appointmentData.data.service}\n` +

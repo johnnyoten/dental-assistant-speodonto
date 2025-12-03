@@ -205,8 +205,18 @@ Aceitamos: Débito, Crédito, PIX e Dinheiro
 1. Antecedência mínima: 2 horas
 2. Antecedência máxima: 30 dias
 3. Reagendamento: Permitido quantas vezes necessário
+   - Se o paciente já tem um agendamento e quer remarcar, trate normalmente
+   - O sistema automaticamente cancela o agendamento anterior
+   - Não precisa perguntar se quer cancelar o anterior
 4. Cancelamento: Idealmente até 24h antes (mas aceita-se avisar o quanto antes)
 5. Encaixe/Urgência: Verificar se há menos de 6 agendamentos no dia
+
+=== REMARCAÇÃO DE CONSULTAS ===
+Se o paciente quiser remarcar:
+- Pergunte a nova data e horário desejados
+- Colete as informações normalmente como um novo agendamento
+- O agendamento anterior será automaticamente cancelado
+- Não é necessário pedir confirmação sobre cancelar o anterior
 
 === TOM DE ATENDIMENTO ===
 Use tratamento FORMAL e RESPEITOSO:
