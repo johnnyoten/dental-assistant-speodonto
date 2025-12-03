@@ -27,16 +27,6 @@ const statusOptions = [
   { value: "CONFIRMED", label: "Confirmado" },
 ];
 
-const timeOptions = [
-  { value: "", label: "Selecione um horário" },
-  { value: "09:30", label: "09:30" },
-  { value: "10:30", label: "10:30" },
-  { value: "11:30", label: "11:30" },
-  { value: "13:00", label: "13:00" },
-  { value: "14:00", label: "14:00" },
-  { value: "15:00", label: "15:00" },
-  { value: "16:00", label: "16:00" },
-];
 
 export default function NewAppointmentPage() {
   const router = useRouter();
@@ -233,14 +223,19 @@ export default function NewAppointmentPage() {
                   />
                 </div>
 
-                <Select
-                  label="Horário"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleChange}
-                  options={timeOptions}
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Horário *
+                  </label>
+                  <input
+                    type="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <Select
