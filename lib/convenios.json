@@ -1,0 +1,279 @@
+[
+  {
+    "convenio": "METLIFE",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "ODONTOLIFE",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "DENTAL UNI",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+
+  { "convenio": "SEMPREODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "CAEDU ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "CONFIANÇA ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "CREDDBLACK ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "DB ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  {
+    "convenio": "DI SANTINNI ODONTO",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  {
+    "convenio": "EMPORIO ALEX ODONTO",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  { "convenio": "ESPECIAL", "servicos": ["Limpezas", "Restaurações"] },
+  {
+    "convenio": "ESPECIAL EMP NAC II",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  { "convenio": "ESSENCIAL II", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ESSENCIAL II AD", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ESSENCIAL II DOC", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ESSENCIAL III", "servicos": ["Limpezas", "Restaurações"] },
+  {
+    "convenio": "ESSENCIAL ORTO PLUS I",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  {
+    "convenio": "FAMILIA SORRISO NALIN",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  { "convenio": "HTN ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "IMPECAVEL ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "IMPERATRIZ ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "INDIVIDUAL I", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "LEVE MAIS ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "LOPES ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "MASTER", "servicos": ["Limpezas", "Restaurações"] },
+  {
+    "convenio": "NA MEDIDA CERTO - BASICO",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  { "convenio": "NOSSO ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ODONTO ESKALA", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ODONTO FACIL", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ODONTO FEST", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "ORTO PLUS 3", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "PREMIUM", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "PREMIUM TRT14", "servicos": ["Limpezas", "Restaurações"] },
+  {
+    "convenio": "SEMPRE ODONTO EMPRESARIAL",
+    "servicos": ["Limpezas", "Restaurações"]
+  },
+  { "convenio": "SORRISO FAMILIA", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "SUPERIOR", "servicos": ["Limpezas", "Restaurações"] },
+  { "convenio": "UZE ODONTO", "servicos": ["Limpezas", "Restaurações"] },
+
+  {
+    "convenio": "AMPARA",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "BIORAL",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "OUZE-CALCARD",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "DENTALSEG",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "LISDENTAL",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "NOSSASAUDE",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "ODONTOSEG",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "PEFISA ODONTO",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "PERNAMBUCANAS",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "PREVIDENT",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "QUALLITY PRO SAUDE",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "SERVIR",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "SIMPLI",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "W.DENTAL",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "TORRA",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "BRAZILDENTAL",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  },
+  {
+    "convenio": "IDEAL ODONTO",
+    "servicos": [
+      "Limpezas",
+      "Restaurações",
+      "Extrações",
+      "Consertos de prótese",
+      "Coroa",
+      "Pino e coroa"
+    ]
+  }
+]
