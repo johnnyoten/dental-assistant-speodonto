@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { geminiAIService as aiService } from "@/lib/ai-service-gemini";
+import { openAIService as aiService } from "@/lib/ai-service-openai";
 import { whatsappService } from "@/lib/whatsapp-service";
 
 // Webhook verification (GET)

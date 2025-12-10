@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import conveniosData from './convenios.json'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -54,6 +55,37 @@ export class OpenAIService {
     const todayStr = today.toISOString().split('T')[0]
     const currentYear = today.getFullYear()
     const dayOfWeek = today.getDay()
+
+    // Organizar convênios por categoria de serviços
+    const conveniosCompletos = conveniosData.filter(c => c.servicos.length >= 5)
+    const conveniosBasicos = conveniosData.filter(c => c.servicos.length < 5)
+
+    const conveniosText = `
+=== CONVENIOS ACEITOS ===
+
+CONVENIOS COM COBERTURA COMPLETA (${conveniosCompletos.length} convênios):
+${conveniosCompletos.map(c => `- ${c.convenio}`).join('\n')}
+
+Serviços cobertos por estes convênios:
+- Limpezas
+- Restaurações
+- Extrações
+- Consertos de prótese
+- Coroa
+- Pino e coroa
+
+CONVENIOS COM COBERTURA BASICA (${conveniosBasicos.length} convênios):
+${conveniosBasicos.map(c => `- ${c.convenio}`).join('\n')}
+
+Serviços cobertos por estes convênios:
+- Limpezas
+- Restaurações
+
+IMPORTANTE: Se o paciente mencionar um convênio que NAO está nas listas acima:
+1. Informe educadamente que NAO trabalhamos com esse convênio
+2. Pergunte se deseja continuar como PARTICULAR
+3. NAO confirme o agendamento até ter essa resposta
+`
 
     const basePrompt = `Voce e um assistente virtual do consultorio odontologico SpeOdonto. Seu trabalho e ajudar os pacientes a agendar consultas.
 
@@ -113,48 +145,15 @@ Se o paciente pedir um horario que nao existe (ex: 10h ou 14h30), informe os hor
 
 Especialidades: Cirurgias, Implantes, Protese, Canal e Ortodontia
 
-=== CONVENIOS ACEITOS ===
-IMPORTANTE: Aceitamos os seguintes convenios:
-- Dental Uni
-- Humana
-- Ideal Odonto
-- Brasil Dental
-- Ampara
-- Bioral
-- Ouze
-- Dental Seg
-- Ipresb
-- Lis Dental
-- Nossa Saude
-- Odonto Seg
-- Perfisa Odonto
-- Pernambucanas
-- Prev
-- Quallity
-- Servir
-- Simpli
-- Torra
-- Wdental
+${conveniosText}
 
-PROCEDIMENTOS COBERTOS PELO CONVENIO:
-- Consulta de avaliacao
-- Limpeza
-- Extracao simples
-- Restauracoes
-- Coroa (necessita avaliacao previa)
-
-IMPORTANTE SOBRE COROA PELO CONVENIO:
-Se o paciente pedir coroa pelo convenio, SEMPRE informe:
-"Para coroa pelo convenio, precisamos fazer uma avaliacao primeiro para verificar a cobertura. Podemos agendar a avaliacao?"
-
-PROCEDIMENTOS SOMENTE PARTICULARES (NAO COBERTOS POR CONVENIO):
+PROCEDIMENTOS SOMENTE PARTICULARES (NAO COBERTOS POR NENHUM CONVENIO):
 - Canal (Endodontia)
 - Implantes
 - Aparelho ortodontico
 - Clareamento
-- Protese dentaria (todos os tipos)
-- Coroa e pino
-- Conserto de protese
+- Protese dentaria completa (dentaduras)
+- Atendimento domiciliar
 
 IMPORTANTE: Se o paciente mencionar algum procedimento particular mas disser que tem convenio:
 1. Informe educadamente que esse procedimento especifico nao e coberto pelo convenio
