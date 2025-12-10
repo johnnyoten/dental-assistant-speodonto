@@ -1,38 +1,42 @@
-import OpenAI from 'openai'
-import conveniosData from './convenios.json'
+import OpenAI from "openai";
+import conveniosData from "./convenios.json";
 
 interface Message {
-  role: 'user' | 'assistant' | 'system'
-  content: string
+  role: "user" | "assistant" | "system";
+  content: string;
 }
 
 interface ConversationContext {
-  customerName?: string
-  service?: string
-  date?: string
-  time?: string
+  customerName?: string;
+  service?: string;
+  date?: string;
+  time?: string;
 }
 
 export class OpenAIService {
-  private client: OpenAI
-  private model: string = 'gpt-3.5-turbo'
+  private client: OpenAI;
+  private model: string = "gpt-3.5-turbo";
 
   constructor() {
     this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || ''
-    })
+      apiKey: process.env.OPENAI_API_KEY || "",
+    });
   }
 
-  async chat(messages: Message[], context?: ConversationContext, occupiedSlots?: string): Promise<string> {
-    const systemPrompt = this.buildSystemPrompt(context, occupiedSlots)
+  async chat(
+    messages: Message[],
+    context?: ConversationContext,
+    occupiedSlots?: string
+  ): Promise<string> {
+    const systemPrompt = this.buildSystemPrompt(context, occupiedSlots);
 
     const openaiMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages.map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content
-      }))
-    ]
+      { role: "system" as const, content: systemPrompt },
+      ...messages.map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+    ];
 
     try {
       const chatCompletion = await this.client.chat.completions.create({
@@ -40,52 +44,53 @@ export class OpenAIService {
         messages: openaiMessages,
         temperature: 0.7,
         max_tokens: 500,
-      })
+      });
 
-      const aiResponse = chatCompletion.choices[0]?.message?.content || ''
-      return aiResponse.trim()
+      const aiResponse = chatCompletion.choices[0]?.message?.content || "";
+      return aiResponse.trim();
     } catch (error: any) {
-      console.error('Erro ao chamar API da OpenAI:', error)
-      throw new Error('Falha ao processar mensagem com IA (OpenAI)')
+      console.error("Erro ao chamar API da OpenAI:", error);
+      throw new Error("Falha ao processar mensagem com IA (OpenAI)");
     }
   }
 
-  private buildSystemPrompt(context?: ConversationContext, occupiedSlots?: string): string {
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
-    const currentYear = today.getFullYear()
-    const dayOfWeek = today.getDay()
+  private buildSystemPrompt(
+    context?: ConversationContext,
+    occupiedSlots?: string
+  ): string {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const currentYear = today.getFullYear();
+    const dayOfWeek = today.getDay();
 
-    // Organizar convênios por categoria de serviços
-    const conveniosCompletos = conveniosData.filter(c => c.servicos.length >= 5)
-    const conveniosBasicos = conveniosData.filter(c => c.servicos.length < 5)
-
+    // Lista de convênios aceitos
     const conveniosText = `
 === CONVENIOS ACEITOS ===
 
-CONVENIOS COM COBERTURA COMPLETA (${conveniosCompletos.length} convênios):
-${conveniosCompletos.map(c => `- ${c.convenio}`).join('\n')}
+Aceitamos os seguintes ${conveniosData.length} convênios odontológicos:
 
-Serviços cobertos por estes convênios:
-- Limpezas
-- Restaurações
-- Extrações
-- Consertos de prótese
-- Coroa
-- Pino e coroa
+${conveniosData.map((c) => `- ${c}`).join("\n")}
 
-CONVENIOS COM COBERTURA BASICA (${conveniosBasicos.length} convênios):
-${conveniosBasicos.map(c => `- ${c.convenio}`).join('\n')}
+IMPORTANTE SOBRE COBERTURA DE PROCEDIMENTOS:
+- Todos os procedimentos pelo convênio estão sujeitos a:
+  1. Avaliação do dentista
+  2. Aprovação do convênio
+- Na primeira consulta, o dentista avaliará o caso e informará quais procedimentos são cobertos pelo seu plano específico
+- Recomendamos agendar uma AVALIAÇÃO/CONSULTA INICIAL para verificar a cobertura
 
-Serviços cobertos por estes convênios:
-- Limpezas
-- Restaurações
+PROCEDIMENTOS GERALMENTE NAO COBERTOS POR CONVENIO (normalmente particulares):
+- Canal (Endodontia)
+- Implantes
+- Aparelho ortodôntico
+- Clareamento
+- Prótese dentária completa (dentaduras)
+- Atendimento domiciliar
 
-IMPORTANTE: Se o paciente mencionar um convênio que NAO está nas listas acima:
+IMPORTANTE: Se o paciente mencionar um convênio que NAO está na lista acima:
 1. Informe educadamente que NAO trabalhamos com esse convênio
 2. Pergunte se deseja continuar como PARTICULAR
 3. NAO confirme o agendamento até ter essa resposta
-`
+`;
 
     const basePrompt = `Voce e um assistente virtual do consultorio odontologico SpeOdonto. Seu trabalho e ajudar os pacientes a agendar consultas.
 
@@ -100,7 +105,11 @@ Horario: [HH:MM]
 
 Depois do bloco acima, adicione uma mensagem amigavel. NUNCA confirme agendamento sem este bloco!
 
-${occupiedSlots ? `\n=== AGENDA ATUAL - HORARIOS OCUPADOS ===\n${occupiedSlots}\n` : ''}
+${
+  occupiedSlots
+    ? `\n=== AGENDA ATUAL - HORARIOS OCUPADOS ===\n${occupiedSlots}\n`
+    : ""
+}
 
 === INFORMACOES DO CONSULTORIO ===
 Nome: SpeOdonto
@@ -112,7 +121,17 @@ Estacionamento: Disponivel na rua em frente ao consultorio
 === DATA E HORARIO ATUAL ===
 Data de hoje: ${todayStr}
 Ano atual: ${currentYear}
-Dia da semana: ${['Domingo', 'Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado'][dayOfWeek]}
+Dia da semana: ${
+      [
+        "Domingo",
+        "Segunda-feira",
+        "Terca-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sabado",
+      ][dayOfWeek]
+    }
 
 === HORARIOS DE ATENDIMENTO ===
 Dias: Segunda-feira, Quarta-feira, Quinta-feira e Sexta-feira
@@ -147,37 +166,30 @@ Especialidades: Cirurgias, Implantes, Protese, Canal e Ortodontia
 
 ${conveniosText}
 
-PROCEDIMENTOS SOMENTE PARTICULARES (NAO COBERTOS POR NENHUM CONVENIO):
-- Canal (Endodontia)
-- Implantes
-- Aparelho ortodontico
-- Clareamento
-- Protese dentaria completa (dentaduras)
-- Atendimento domiciliar
-
-IMPORTANTE: Se o paciente mencionar algum procedimento particular mas disser que tem convenio:
-1. Informe educadamente que esse procedimento especifico nao e coberto pelo convenio
-2. Informe que pode ser feito de forma particular
-3. Pergunte se deseja agendar mesmo assim como particular
-
 FLUXO DE ATENDIMENTO - CONVENIO/PARTICULAR:
 1. SEMPRE pergunte primeiro: "O atendimento sera particular ou por convenio?"
+
 2. Se responder "PARTICULAR":
    - Pergunte: "So para confirmar, o(a) Sr.(a) nao possui nenhum convenio odontologico?"
    - Se confirmar que nao tem: continue o agendamento normalmente
    - Se mencionar que tem convenio: va para o passo 3
+
 3. Se responder "CONVENIO" ou mencionar um convenio:
-   - Pergunte qual convenio
-   - Verifique se o PROCEDIMENTO e coberto pelo convenio (lista acima)
-   - Se o procedimento NAO for coberto:
-     a) Informe que o procedimento nao e coberto pelo convenio
-     b) Pergunte se deseja fazer como PARTICULAR
-   - Se for convenio ACEITO e procedimento COBERTO: continue o agendamento
+   - Pergunte qual convenio o paciente possui
+   - Verifique se o convenio esta na lista de CONVENIOS ACEITOS
+
+   - Se for convenio ACEITO:
+     a) Informe: "Otimo! Trabalhamos com [NOME DO CONVENIO]"
+     b) Informe: "Os procedimentos cobertos dependem da avaliacao do dentista e aprovacao do convenio"
+     c) Se o paciente perguntar sobre procedimento especifico:
+        - Para procedimentos GERALMENTE NAO COBERTOS (lista acima): informe que normalmente e particular
+        - Para outros procedimentos: informe que depende de avaliacao
+     d) Continue com o agendamento normalmente
+
    - Se for convenio NAO ACEITO:
      a) Informe educadamente que NAO trabalhamos com esse convenio
-     b) Informe os convenios aceitos
-     c) Pergunte se deseja continuar como PARTICULAR
-     d) NAO confirme o agendamento ate ter essa resposta
+     b) Pergunte se deseja continuar como PARTICULAR
+     c) NAO confirme o agendamento ate ter essa resposta
 
 NUNCA confirme um agendamento sem saber se e particular ou convenio!
 
@@ -247,10 +259,24 @@ Exemplo:
 - Resposta: "Desculpe, mas as 10h00 ja esta ocupado. Temos disponivel: 9h30, 11h00, 13h00, 15h00. Qual prefere?"
 
 === IMPORTANTE SOBRE DATAS ===
-ATENCAO: Hoje e ${todayStr} (${['Domingo', 'Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado'][dayOfWeek]})
+ATENCAO: Hoje e ${todayStr} (${
+      [
+        "Domingo",
+        "Segunda-feira",
+        "Terca-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sabado",
+      ][dayOfWeek]
+    })
 
 Quando o paciente disser:
-- "amanha" = ${new Date(new Date(todayStr).getTime() + 24*60*60*1000).toISOString().split('T')[0]}
+- "amanha" = ${
+      new Date(new Date(todayStr).getTime() + 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0]
+    }
 - "hoje" = ${todayStr}
 - "quinta-feira que vem" ou "proxima quinta-feira":
   * Se hoje e quinta-feira: a proxima quinta e daqui a 7 dias
@@ -328,46 +354,50 @@ CRITICO - FORMATO DO HORARIO:
 ATENCAO: O formato YYYY-MM-DD e APENAS para a resposta final AGENDAMENTO_COMPLETO.
 Na conversa com o paciente, use SEMPRE DD/MM/YYYY!
 
-NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`
+NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`;
 
     if (context) {
-      let contextInfo = '\n\nINFORMACOES JA COLETADAS:'
-      if (context.customerName) contextInfo += `\n- Nome: ${context.customerName}`
-      if (context.service) contextInfo += `\n- Servico: ${context.service}`
-      if (context.date) contextInfo += `\n- Data: ${context.date}`
-      if (context.time) contextInfo += `\n- Horario: ${context.time}`
+      let contextInfo = "\n\nINFORMACOES JA COLETADAS:";
+      if (context.customerName)
+        contextInfo += `\n- Nome: ${context.customerName}`;
+      if (context.service) contextInfo += `\n- Servico: ${context.service}`;
+      if (context.date) contextInfo += `\n- Data: ${context.date}`;
+      if (context.time) contextInfo += `\n- Horario: ${context.time}`;
 
-      return basePrompt + contextInfo
+      return basePrompt + contextInfo;
     }
 
-    return basePrompt
+    return basePrompt;
   }
 
   extractAppointmentData(message: string): {
-    isComplete: boolean
+    isComplete: boolean;
     data?: {
-      customerName: string
-      service: string
-      date: string
-      time: string
-    }
+      customerName: string;
+      service: string;
+      date: string;
+      time: string;
+    };
   } {
-    if (!message.includes('AGENDAMENTO_COMPLETO')) {
-      return { isComplete: false }
+    if (!message.includes("AGENDAMENTO_COMPLETO")) {
+      return { isComplete: false };
     }
 
-    const nameMatch = message.match(/Nome:\s*(.+)/i)
-    const serviceMatch = message.match(/Servi[cç]o:\s*(.+)/i)
-    const dateMatch = message.match(/Data:\s*(\d{4}-\d{2}-\d{2})/i)
-    const timeMatch = message.match(/Hor[aá]rio:\s*(\d{1,2}[h:]?\d{0,2})/i)
+    const nameMatch = message.match(/Nome:\s*(.+)/i);
+    const serviceMatch = message.match(/Servi[cç]o:\s*(.+)/i);
+    const dateMatch = message.match(/Data:\s*(\d{4}-\d{2}-\d{2})/i);
+    const timeMatch = message.match(/Hor[aá]rio:\s*(\d{1,2}[h:]?\d{0,2})/i);
 
     if (nameMatch && serviceMatch && dateMatch && timeMatch) {
       // Normalizar horário para formato HH:MM
-      let time = timeMatch[1].trim()
+      let time = timeMatch[1].trim();
       // Converter "9h30" ou "9:30" para "09:30"
-      time = time.replace('h', ':')
-      const [hours, minutes = '00'] = time.split(':')
-      const normalizedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+      time = time.replace("h", ":");
+      const [hours, minutes = "00"] = time.split(":");
+      const normalizedTime = `${hours.padStart(2, "0")}:${minutes.padStart(
+        2,
+        "0"
+      )}`;
 
       return {
         isComplete: true,
@@ -375,46 +405,49 @@ NUNCA envie AGENDAMENTO_COMPLETO mais de uma vez na mesma conversa!`
           customerName: nameMatch[1].trim(),
           service: serviceMatch[1].trim(),
           date: dateMatch[1].trim(),
-          time: normalizedTime
-        }
-      }
+          time: normalizedTime,
+        },
+      };
     }
 
-    return { isComplete: false }
+    return { isComplete: false };
   }
 
   extractRescheduleData(message: string): {
-    isReschedule: boolean
+    isReschedule: boolean;
     data?: {
-      newDate: string
-      newTime: string
-    }
+      newDate: string;
+      newTime: string;
+    };
   } {
-    if (!message.includes('ALTERACAO_COMPLETA')) {
-      return { isReschedule: false }
+    if (!message.includes("ALTERACAO_COMPLETA")) {
+      return { isReschedule: false };
     }
 
-    const dateMatch = message.match(/NovaData:\s*(\d{4}-\d{2}-\d{2})/i)
-    const timeMatch = message.match(/NovoHor[aá]rio:\s*(\d{1,2}[h:]?\d{0,2})/i)
+    const dateMatch = message.match(/NovaData:\s*(\d{4}-\d{2}-\d{2})/i);
+    const timeMatch = message.match(/NovoHor[aá]rio:\s*(\d{1,2}[h:]?\d{0,2})/i);
 
     if (dateMatch && timeMatch) {
       // Normalizar horário
-      let time = timeMatch[1].trim()
-      time = time.replace('h', ':')
-      const [hours, minutes = '00'] = time.split(':')
-      const normalizedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+      let time = timeMatch[1].trim();
+      time = time.replace("h", ":");
+      const [hours, minutes = "00"] = time.split(":");
+      const normalizedTime = `${hours.padStart(2, "0")}:${minutes.padStart(
+        2,
+        "0"
+      )}`;
 
       return {
         isReschedule: true,
         data: {
           newDate: dateMatch[1].trim(),
-          newTime: normalizedTime
-        }
-      }
+          newTime: normalizedTime,
+        },
+      };
     }
 
-    return { isReschedule: false }
+    return { isReschedule: false };
   }
 }
 
-export const openAIService = new OpenAIService()
+export const openAIService = new OpenAIService();
